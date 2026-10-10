@@ -22,6 +22,7 @@ use pocketmine\player\Player;
 use TradeNPC\entity\TradeNPC;
 use TradeNPC\Main;
 use TradeNPC\TradeDataPool;
+use TradeNPC\TradeSettlement;
 
 class EventListener implements Listener
 {
@@ -95,14 +96,7 @@ class EventListener implements Listener
                     $buyA = Item::nbtDeserialize($buyATag);
                     $buyB = Item::nbtDeserialize($buyBTag);
                     $sell = Item::nbtDeserialize($sellTag);
-                    if (
-                        $player->getInventory()->contains($buyA) and
-                        $player->getInventory()->contains($buyB)
-                    ) {
-                        $player->getInventory()->removeItem($buyA);
-                        $player->getInventory()->removeItem($buyB);
-                        $player->getInventory()->addItem($sell);
-                    }
+                    TradeSettlement::complete($player->getInventory(), $buyA, $buyB, $sell);
                 }
             }
         }
