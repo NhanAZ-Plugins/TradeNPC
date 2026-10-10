@@ -15,8 +15,6 @@ use pocketmine\network\mcpe\protocol\ActorEventPacket;
 use pocketmine\network\mcpe\protocol\InventoryTransactionPacket;
 use pocketmine\network\mcpe\protocol\LoginPacket;
 use pocketmine\network\mcpe\protocol\types\ActorEvent;
-use pocketmine\network\mcpe\protocol\types\inventory\NetworkInventoryAction;
-use pocketmine\network\mcpe\protocol\types\inventory\NormalTransactionData;
 use pocketmine\network\mcpe\protocol\types\inventory\UseItemOnEntityTransactionData;
 use pocketmine\player\Player;
 use TradeNPC\entity\TradeNPC;
@@ -100,24 +98,10 @@ class EventListener implements Listener
                 }
             }
         }
-        if ($packet instanceof InventoryTransactionPacket && $player instanceof Player) {
-            if ($packet->trData instanceof NormalTransactionData) {
-                foreach ($packet->trData->getActions() as $action) {
-                    if ($action instanceof NetworkInventoryAction) {
-                        if (
-                            isset(TradeDataPool::$windowIdData[$player->getName()]) and
-                            $action->windowId === TradeDataPool::$windowIdData[$player->getName()]
-                        ) {
-                            $player->getInventory()->addItem($action->oldItem);
-                            $player->getInventory()->removeItem($action->newItem);
-                        }
-                    }
-                }
-            } elseif ($packet->trData instanceof UseItemOnEntityTransactionData) {
-                $entity = $player->getWorld()->getEntity($packet->trData->getActorRuntimeId());
-                if ($entity instanceof TradeNPC) {
-                    $plugin->setCWindow($entity->getTradeInventory(), $player);
-                }
+        if ($packet instanceof InventoryTransactionPacket && $player instanceof Player && $packet->trData instanceof UseItemOnEntityTransactionData) {
+            $entity = $player->getWorld()->getEntity($packet->trData->getActorRuntimeId());
+            if ($entity instanceof TradeNPC) {
+                $plugin->setCWindow($entity->getTradeInventory(), $player);
             }
         }
         if ($packet instanceof LoginPacket) {

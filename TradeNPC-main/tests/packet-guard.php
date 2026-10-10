@@ -3,6 +3,9 @@
 declare(strict_types=1);
 
 use pocketmine\event\server\DataPacketReceiveEvent;
+use pocketmine\entity\Human;
+use pocketmine\inventory\PlayerInventory;
+use pocketmine\item\VanillaItems;
 use pocketmine\nbt\NBT;
 use pocketmine\nbt\tag\CompoundTag;
 use pocketmine\nbt\tag\ListTag;
@@ -10,6 +13,10 @@ use pocketmine\network\mcpe\NetworkSession;
 use pocketmine\network\mcpe\protocol\ActorEventPacket;
 use pocketmine\network\mcpe\protocol\InventoryTransactionPacket;
 use pocketmine\network\mcpe\protocol\types\ActorEvent;
+use pocketmine\network\mcpe\protocol\types\inventory\ItemStack;
+use pocketmine\network\mcpe\protocol\types\inventory\ItemStackWrapper;
+use pocketmine\network\mcpe\protocol\types\inventory\NetworkInventoryAction;
+use pocketmine\network\mcpe\protocol\types\inventory\NormalTransactionData;
 use pocketmine\player\Player;
 use TradeNPC\entity\TradeNPC;
 use TradeNPC\listener\EventListener;
@@ -65,4 +72,22 @@ $listener->handleDataPacket($completeTrade(-1));
 $listener->handleDataPacket($completeTrade(1));
 $listener->handleDataPacket($completeTrade(0));
 
-echo "PASS: missing player, invalid recipe index and incomplete recipe are ignored\n";
+$inventory = new PlayerInventory($player);
+(new ReflectionProperty(Human::class, 'inventory'))->setValue($player, $inventory);
+$inventory->setItem(0, VanillaItems::DIAMOND());
+$action = new NetworkInventoryAction();
+$action->sourceType = NetworkInventoryAction::SOURCE_CONTAINER;
+$action->windowId = 42;
+$action->inventorySlot = 0;
+$action->oldItem = ItemStackWrapper::legacy(ItemStack::null());
+$action->newItem = ItemStackWrapper::legacy(ItemStack::null());
+TradeDataPool::$windowIdData[$player->getName()] = 42;
+$listener->handleDataPacket(new DataPacketReceiveEvent(
+    $session,
+    InventoryTransactionPacket::create(0, [], NormalTransactionData::new([$action]))
+));
+if (!$inventory->getItem(0)->equals(VanillaItems::DIAMOND()) || $inventory->getItem(0)->getCount() !== 1) {
+    throw new RuntimeException('Normal transaction changed the live inventory');
+}
+
+echo "PASS: invalid trade packets and normal inventory action do not change inventory\n";
