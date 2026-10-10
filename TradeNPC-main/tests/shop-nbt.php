@@ -12,6 +12,7 @@ use pocketmine\nbt\TreeRoot;
 use pocketmine\player\Player;
 use TradeNPC\entity\TradeNPC;
 use TradeNPC\inventory\TradeInventory;
+use TradeNPC\Main;
 
 $autoload = getenv('AXOLOTL_AUTOLOAD');
 if ($autoload === false || !is_file($autoload)) {
@@ -32,7 +33,20 @@ class ShopNbtNpc extends TradeNPC {
 }
 
 class ShopNbtPlayer extends Player {
+    /** @var list<TradeInventory> */
+    public array $openedWindows = [];
+    public bool $allowWindow = true;
     public function __destruct() {}
+    public function setCurrentWindow(\pocketmine\inventory\Inventory $inventory): bool {
+        if (!$this->allowWindow) {
+            return false;
+        }
+        if (!$inventory instanceof TradeInventory) {
+            throw new RuntimeException('Unexpected inventory');
+        }
+        $this->openedWindows[] = $inventory;
+        return true;
+    }
 }
 
 $npc = (new ReflectionClass(ShopNbtNpc::class))->newInstanceWithoutConstructor();
@@ -63,6 +77,18 @@ if ($compoundOffers === null || $treeOffers === null ||
     throw new RuntimeException('Trade offers did not preserve the shop tag');
 }
 
+$plugin = (new ReflectionClass(Main::class))->newInstanceWithoutConstructor();
+$firstPlayer = (new ReflectionClass(ShopNbtPlayer::class))->newInstanceWithoutConstructor();
+$secondPlayer = (new ReflectionClass(ShopNbtPlayer::class))->newInstanceWithoutConstructor();
+if (!$plugin->setCWindow($inventory, $firstPlayer) || !$plugin->setCWindow($inventory, $secondPlayer) ||
+    $firstPlayer->openedWindows !== [$inventory] || $secondPlayer->openedWindows !== [$inventory]) {
+    throw new RuntimeException('Shared NPC inventory did not open for each player');
+}
+$firstPlayer->allowWindow = false;
+if ($plugin->setCWindow($inventory, $firstPlayer) || count($firstPlayer->openedWindows) !== 1) {
+    throw new RuntimeException('Rejected inventory open was not respected');
+}
+
 $shopProperty->setValue($npc, CompoundTag::create());
 try {
     $npc->addTradeItem(VanillaItems::DIAMOND(), VanillaItems::STICK(), VanillaItems::GOLD_INGOT());
@@ -82,4 +108,4 @@ try {
 } catch (LogicException) {
 }
 
-echo "PASS: trade shop NBT round trip and invalid states are explicit\n";
+echo "PASS: trade shop NBT, invalid states and per-player window opening\n";

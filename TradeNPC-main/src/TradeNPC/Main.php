@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace TradeNPC;
 
-use InvalidArgumentException;
 use muqsit\invmenu\InvMenu;
 use muqsit\invmenu\InvMenuHandler;
 use muqsit\invmenu\transaction\InvMenuTransaction as Transaction;
@@ -17,7 +16,6 @@ use pocketmine\entity\EntityDataHelper;
 use pocketmine\entity\EntityFactory;
 use pocketmine\entity\Human;
 use pocketmine\entity\Location;
-use pocketmine\event\inventory\InventoryOpenEvent;
 use pocketmine\event\Listener;
 use pocketmine\item\Item;
 use pocketmine\item\VanillaItems;
@@ -212,23 +210,14 @@ class Main extends PluginBase implements Listener
         }
     }
 
-    /** @param Player $player */
+    /** @param Player $player
+     *  @phpstan-impure
+     */
     public function setCWindow(TradeInventory $inventory, $player): bool
     {
-        if ($inventory === $this->currentWindow) {
-            return true;
-        }
-        $ev = new InventoryOpenEvent($inventory, $player);
-        $ev->call();
-        if ($ev->isCancelled()) {
+        if (!$player->setCurrentWindow($inventory)) {
             return false;
         }
-        $player->removeCurrentWindow();
-
-        if ($player->getNetworkSession()->getInvManager() === null) {
-            throw new InvalidArgumentException("Player cannot open inventories in this state");
-        }
-        $inventory->onOpen($player);
         $this->currentWindow = $inventory;
         return true;
     }
