@@ -76,19 +76,25 @@ class EventListener implements Listener
         $plugin = $this->plugin;
         $player = $event->getOrigin()->getPlayer();
         $packet = $event->getPacket();
-        if ($player instanceof Player and isset(TradeDataPool::$windowIdData[$player->getName()])) {
-            var_dump(TradeDataPool::$windowIdData[$player->getName()]);
-        }
-        if ($packet instanceof ActorEventPacket) {
+        if ($packet instanceof ActorEventPacket && $player instanceof Player) {
             if ($packet->eventId === ActorEvent::COMPLETE_TRADE) {
-                if (!isset(TradeDataPool::$interactNPCData[$player->getName()])) {
+                $npc = TradeDataPool::$interactNPCData[$player->getName()] ?? null;
+                $recipes = $npc?->getShopCompoundTag()?->getListTag("Recipes");
+                $recipeIndex = $packet->eventData;
+                if ($recipes === null || $recipeIndex < 0 || $recipeIndex >= count($recipes)) {
                     return;
                 }
-                $data = TradeDataPool::$interactNPCData[$player->getName()]->getShopCompoundTag()->getListTag("Recipes")->get($packet->eventData);
+                $data = $recipes->get($recipeIndex);
                 if ($data instanceof CompoundTag) {
-                    $buyA = Item::nbtDeserialize($data->getCompoundTag("buyA"));
-                    $buyB = Item::nbtDeserialize($data->getCompoundTag("buyB"));
-                    $sell = Item::nbtDeserialize($data->getCompoundTag("sell"));
+                    $buyATag = $data->getCompoundTag("buyA");
+                    $buyBTag = $data->getCompoundTag("buyB");
+                    $sellTag = $data->getCompoundTag("sell");
+                    if ($buyATag === null || $buyBTag === null || $sellTag === null) {
+                        return;
+                    }
+                    $buyA = Item::nbtDeserialize($buyATag);
+                    $buyB = Item::nbtDeserialize($buyBTag);
+                    $sell = Item::nbtDeserialize($sellTag);
                     if (
                         $player->getInventory()->contains($buyA) and
                         $player->getInventory()->contains($buyB)
@@ -100,7 +106,7 @@ class EventListener implements Listener
                 }
             }
         }
-        if ($packet instanceof InventoryTransactionPacket) {
+        if ($packet instanceof InventoryTransactionPacket && $player instanceof Player) {
             if ($packet->trData instanceof NormalTransactionData) {
                 foreach ($packet->trData->getActions() as $action) {
                     if ($action instanceof NetworkInventoryAction) {

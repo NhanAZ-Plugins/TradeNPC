@@ -8,8 +8,8 @@ This repository contains three nested historical source trees. Its root is not a
 | [`TradeNPC-Fixed-master/`](TradeNPC-Fixed-master/) | `4.0.0` | alvin0319 and DavidGlitch04, no local license file |
 | [`TradeAPI-stable/`](TradeAPI-stable/) | `5.0.0` | nlog, AGPL-3.0 text |
 
-The API 5 TradeNPC source imports InvMenu and SimplePacketHandler, but this collection does not pin their revisions or provide a root build workflow. TradeAPI is a separate plugin source tree; its presence here does not prove that either TradeNPC snapshot depends on it. Do not combine the three directories into one PHAR or infer that their licenses are interchangeable.
+The API 5 TradeNPC source imports InvMenu and SimplePacketHandler, but this collection does not pin their revisions or provide a root build workflow. Recent releases of those libraries have different minimum plugin API requirements, so selecting a revision requires a compatibility check. TradeAPI is a separate plugin source tree; its presence here does not prove that either TradeNPC snapshot depends on it. Do not combine the three directories into one PHAR or infer that their licenses are interchangeable.
 
-No PHPStan maximum level, DevTools PHAR, Axolotl-PM runtime smoke test or current release has been verified for these snapshots. A maintained distribution needs an explicit source choice, preserved upstream notices, dependency pins and tests on a disposable server before use with player trades.
+Maximum-level PHPStan currently fails for both API 5 source trees. The TradeNPC packet listener now ignores pre-login trade packets, invalid recipe indices and incomplete recipes. Run its focused guard fixture with `AXOLOTL_AUTOLOAD` set to a verified Axolotl-PM Composer autoload file. This guard does not establish safe trade settlement. A maintained distribution still needs an explicit source choice, preserved upstream notices, dependency pins, a verified DevTools PHAR and disposable-server tests before use with player trades. No runtime smoke test or current release is verified for these snapshots.
 
 For questions about the NhanAZ ecosystem, use [NhanAZ Discord](https://discord.gg/j2X83ujT6c).
