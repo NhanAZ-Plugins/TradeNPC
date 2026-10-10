@@ -6,26 +6,23 @@ namespace TradeNPC\listener;
 
 use pocketmine\event\Listener;
 use pocketmine\event\player\PlayerChatEvent;
-use pocketmine\event\player\PlayerQuitEvent;
 use pocketmine\event\server\DataPacketReceiveEvent;
 use pocketmine\item\Item;
 use pocketmine\nbt\tag\CompoundTag;
-use pocketmine\network\mcpe\JwtUtils;
 use pocketmine\network\mcpe\protocol\ActorEventPacket;
+use pocketmine\network\mcpe\protocol\ContainerClosePacket;
 use pocketmine\network\mcpe\protocol\InventoryTransactionPacket;
-use pocketmine\network\mcpe\protocol\LoginPacket;
 use pocketmine\network\mcpe\protocol\types\ActorEvent;
 use pocketmine\network\mcpe\protocol\types\inventory\UseItemOnEntityTransactionData;
 use pocketmine\player\Player;
 use TradeNPC\entity\TradeNPC;
 use TradeNPC\Main;
 use TradeNPC\TradeDataPool;
+use TradeNPC\TradePacketFactory;
 use TradeNPC\TradeSettlement;
 
 class EventListener implements Listener
 {
-
-    protected $deviceOSData = [];
 
     public function __construct(
         protected Main $plugin
@@ -58,7 +55,6 @@ class EventListener implements Listener
             $plugin->fullItem = [];
             $plugin->turn = false;
             $plugin->name = null;
-            unset(TradeDataPool::$editNPCData[$player->getName()]);
             $event->cancel();
         }
     }
@@ -97,17 +93,8 @@ class EventListener implements Listener
                 $plugin->setCWindow($entity->getTradeInventory(), $player);
             }
         }
-        if ($packet instanceof LoginPacket) {
-            $data = JwtUtils::parse($packet->clientDataJwt);
-            $device = intval($data[1]["DeviceOS"]);
-            $this->deviceOSData[strtolower($data[1]["ThirdPartyName"])] = $device;
+        if ($packet instanceof ContainerClosePacket && $player instanceof Player && isset(TradeDataPool::$windowIdData[$player->getName()])) {
+            $event->getOrigin()->sendDataPacket(TradePacketFactory::closeTradeWindow());
         }
-    }
-
-    public function onQuit(PlayerQuitEvent $event)
-    {
-        $player = $event->getPlayer();
-        if (isset($this->deviceOSData[strtolower($player->getName())]))
-            unset($this->deviceOSData[strtolower($player->getName())]);
     }
 }

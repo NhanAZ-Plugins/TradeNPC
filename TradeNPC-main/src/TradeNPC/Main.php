@@ -9,7 +9,6 @@ use muqsit\invmenu\InvMenu;
 use muqsit\invmenu\InvMenuHandler;
 use muqsit\invmenu\transaction\InvMenuTransaction as Transaction;
 use muqsit\invmenu\transaction\InvMenuTransactionResult as TransactionResult;
-use muqsit\simplepackethandler\SimplePacketHandler;
 use pocketmine\block\utils\DyeColor;
 use pocketmine\block\VanillaBlocks;
 use pocketmine\command\Command;
@@ -25,8 +24,6 @@ use pocketmine\item\VanillaItems;
 use pocketmine\nbt\tag\ByteArrayTag;
 use pocketmine\nbt\tag\CompoundTag;
 use pocketmine\nbt\tag\StringTag;
-use pocketmine\network\mcpe\NetworkSession;
-use pocketmine\network\mcpe\protocol\ContainerClosePacket;
 use pocketmine\player\Player;
 use pocketmine\plugin\PluginBase;
 use pocketmine\utils\SingletonTrait;
@@ -40,6 +37,7 @@ class Main extends PluginBase implements Listener
 
     use SingletonTrait;
 
+    /** @var TradeInventory|null */
     public $currentWindow = null;
 
     /** @var array<int, Item> */
@@ -47,12 +45,16 @@ class Main extends PluginBase implements Listener
 
     public InvMenu $menu;
 
+    /** @var string|null */
     public $name = null;
 
+    /** @var bool */
     public $start = false;
 
+    /** @var bool */
     public $turn = false;
 
+    /** @return TradeNPC|null */
     public function getEntityName(string $chat)
     {
         foreach ($this->getServer()->getWorldManager()->getWorlds() as $level) {
@@ -65,13 +67,24 @@ class Main extends PluginBase implements Listener
                 }
             }
         }
+        return null;
     }
 
+    /** @param int|float $posX
+     *  @param int|float $posZz
+     *  @param int|float $X
+     *  @param int|float $Z
+     */
     public function distance($posX, $posZz, $X, $Z): float
     {
         return sqrt($this->distanceSquared($posX, $posZz, $X, $Z));
     }
 
+    /** @param int|float $posx
+     *  @param int|float $posz
+     *  @param int|float $x
+     *  @param int|float $z
+     */
     public function distanceSquared($posx, $posz, $x, $z): float
     {
         return (($x - $posx) ** 2) + (($z - $posz) ** 2);
@@ -90,7 +103,7 @@ class Main extends PluginBase implements Listener
                 case "create":
                     array_shift($args);
                     $name = implode(" ", $args);
-                    if (!isset($name)) {
+                    if (trim($name) === '') {
                         $sender->sendMessage("Usage: /npc create (name)");
                         break;
                     }
@@ -104,8 +117,8 @@ class Main extends PluginBase implements Listener
                         Location::fromObject(
                             $sender->getPosition()->add(0.5, 0, 0.5),
                             $sender->getPosition()->getWorld(),
-                            $sender->getLocation()->getYaw() ?? 0,
-                            $sender->getLocation()->getPitch() ?? 0
+                            $sender->getLocation()->getYaw(),
+                            $sender->getLocation()->getPitch()
                         ),
                         $sender->getSkin(),
                         $nbt
@@ -120,7 +133,7 @@ class Main extends PluginBase implements Listener
                 case "remove":
                     array_shift($args);
                     $name = implode(" ", $args);
-                    if (!isset($name)) {
+                    if (trim($name) === '') {
                         $sender->sendMessage("Usage: /npc remove (name)");
                         break;
                     }
@@ -155,6 +168,9 @@ class Main extends PluginBase implements Listener
         return true;
     }
 
+    /** @param Player $p
+     *  @return void
+     */
     public function setItems($p)
     {
         $this->menu->setName("§eTradeNPC");
@@ -185,6 +201,7 @@ class Main extends PluginBase implements Listener
         $this->menu->send($p);
     }
 
+    /** @return void */
     public function saveAll()
     {
         foreach ($this->getServer()->getOnlinePlayers() as $player) {
@@ -195,6 +212,7 @@ class Main extends PluginBase implements Listener
         }
     }
 
+    /** @param Player $player */
     public function setCWindow(TradeInventory $inventory, $player): bool
     {
         if ($inventory === $this->currentWindow) {
@@ -229,18 +247,6 @@ class Main extends PluginBase implements Listener
             return new TradeNPC(EntityDataHelper::parseLocation($nbt, $world), Human::parseSkinNBT($nbt), $nbt);
         }, ['TradeNPC', 'Trade']);
         $this->getServer()->getPluginManager()->registerEvents(new EventListener($this), $this);
-        SimplePacketHandler::createInterceptor($this)
-            ->interceptIncoming(static function (ContainerClosePacket $packet, NetworkSession $networkSession): bool {
-                $player = $networkSession->getPlayer();
-                if (isset(TradeDataPool::$windowIdData[$player->getName()])) {
-                    $pk = ContainerClosePacket::create(
-                        windowId: 255,
-                        server: false
-                    );
-                    $networkSession->sendDataPacket($pk);
-                }
-                return true;
-            });
         $this->menu = InvMenu::create(InvMenu::TYPE_CHEST);
     }
 }

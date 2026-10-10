@@ -19,6 +19,7 @@ use TradeNPC\inventory\TradeInventory;
 class TradeNPC extends Human implements Ageable
 {
 
+    /** @var TreeRoot|CompoundTag|null */
     protected $shop = null;
 
     public function initEntity(CompoundTag $nbt): void
@@ -47,6 +48,9 @@ class TradeNPC extends Human implements Ageable
         return (new LittleEndianNbtSerializer)->write($this->getTreeRoot($this->shop));
     }
 
+    /** @param TreeRoot|CompoundTag|null $tag
+     *  @return TreeRoot
+     */
     public function getTreeRoot($tag)
     {
         if ($tag instanceof CompoundTag) {
@@ -54,6 +58,7 @@ class TradeNPC extends Human implements Ageable
         } elseif ($tag instanceof TreeRoot) {
             return $tag;
         }
+        throw new \LogicException('Trade shop is not initialized');
     }
 
     public function getName(): string
@@ -68,15 +73,23 @@ class TradeNPC extends Human implements Ageable
 
     public function addTradeItem(Item $buyA, Item $buyB, Item $sell): void
     {
-        $this->getTagFunction($this->shop)->getListTag("Recipes")->push($this->makeRecipe($buyA, $buyB, $sell));
+        $shop = $this->getShopCompoundTag();
+        if ($shop === null) {
+            throw new \LogicException('Trade shop is not initialized');
+        }
+        $recipes = $shop->getListTag('Recipes');
+        if ($recipes === null) {
+            throw new \UnexpectedValueException('Trade shop has no recipe list');
+        }
+        $recipes->push($this->makeRecipe($buyA, $buyB, $sell));
     }
 
+    /** @param TreeRoot|CompoundTag $tag
+     *  @return CompoundTag
+     */
     public function getTagFunction($tag)
     {
-        return (
-            $tag instanceof TreeRoot &&
-            $tag->getTag() instanceof CompoundTag
-        ) ? $tag->getTag() : $tag;
+        return $tag instanceof TreeRoot ? $tag->mustGetCompoundTag() : $tag;
     }
 
     public function makeRecipe(Item $buyA, Item $buyB, Item $sell): CompoundTag

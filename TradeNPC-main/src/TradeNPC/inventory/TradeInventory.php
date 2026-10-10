@@ -35,6 +35,14 @@ class TradeInventory extends SimpleInventory implements BlockInventory
 
     public function onOpen(Player $who): void
     {
+        $shop = $this->npc->getShopCompoundTag();
+        if ($shop === null) {
+            throw new \LogicException('Trade shop is not initialized');
+        }
+        $offers = $this->getOffers($shop);
+        if ($offers === null) {
+            throw new \LogicException('Trade offers could not be created');
+        }
         BaseInventory::onOpen($who);
 
         $pk = new UpdateTradePacket();
@@ -44,21 +52,19 @@ class TradeInventory extends SimpleInventory implements BlockInventory
         $pk->tradeTier = 3;
         $pk->playerActorUniqueId = $id;
         $pk->traderActorUniqueId = $this->npc->getId();
-        $pk->offers = $this->getOffers($this->npc->getShopCompoundTag());
+        $pk->offers = $offers;
         $pk->isEconomyTrading = false;
         $who->getNetworkSession()->sendDataPacket($pk);
         TradeDataPool::$windowIdData[$who->getName()] = $id;
         TradeDataPool::$interactNPCData[$who->getName()] = $this->npc;
     }
 
+    /** @param TreeRoot|CompoundTag $nbt
+     *  @return CacheableNbt<CompoundTag>
+     */
     public function getOffers($nbt): ?CacheableNbt
     {
-        if ($nbt instanceof TreeRoot) {
-            return new CacheableNbt($nbt->mustGetCompoundTag());
-        } elseif ($nbt instanceof CompoundTag) {
-            return new CacheableNbt($this->npc->getShopCompoundTag());
-        }
-        return null;
+        return new CacheableNbt($nbt instanceof TreeRoot ? $nbt->mustGetCompoundTag() : $nbt);
     }
 
     public function getName(): string

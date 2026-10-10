@@ -11,12 +11,16 @@ use pocketmine\nbt\tag\CompoundTag;
 use pocketmine\nbt\tag\ListTag;
 use pocketmine\network\mcpe\NetworkSession;
 use pocketmine\network\mcpe\protocol\ActorEventPacket;
+use pocketmine\network\mcpe\protocol\ClientboundPacket;
+use pocketmine\network\mcpe\protocol\ContainerClosePacket;
 use pocketmine\network\mcpe\protocol\InventoryTransactionPacket;
+use pocketmine\network\mcpe\protocol\LoginPacket;
 use pocketmine\network\mcpe\protocol\types\ActorEvent;
 use pocketmine\network\mcpe\protocol\types\inventory\ItemStack;
 use pocketmine\network\mcpe\protocol\types\inventory\ItemStackWrapper;
 use pocketmine\network\mcpe\protocol\types\inventory\NetworkInventoryAction;
 use pocketmine\network\mcpe\protocol\types\inventory\NormalTransactionData;
+use pocketmine\network\mcpe\protocol\types\inventory\WindowTypes;
 use pocketmine\player\Player;
 use TradeNPC\entity\TradeNPC;
 use TradeNPC\listener\EventListener;
@@ -41,12 +45,22 @@ class PacketGuardPlayer extends Player {
     public function __destruct() {}
 }
 
+class PacketGuardSession extends NetworkSession {
+    /** @var list<ClientboundPacket> */
+    public array $sent = [];
+    public function __destruct() {}
+    public function sendDataPacket(ClientboundPacket $packet, bool $immediate = false): bool {
+        $this->sent[] = $packet;
+        return true;
+    }
+}
+
 class PacketGuardNpc extends TradeNPC {
     public function __destruct() {}
 }
 
 $listener = new EventListener((new ReflectionClass(Main::class))->newInstanceWithoutConstructor());
-$session = (new ReflectionClass(NetworkSession::class))->newInstanceWithoutConstructor();
+$session = (new ReflectionClass(PacketGuardSession::class))->newInstanceWithoutConstructor();
 $completeTrade = static function (int $index) use ($session): DataPacketReceiveEvent {
     $packet = (new ReflectionClass(ActorEventPacket::class))->newInstanceWithoutConstructor();
     $packet->actorRuntimeId = 0;
@@ -59,6 +73,10 @@ $listener->handleDataPacket($completeTrade(0));
 $listener->handleDataPacket(new DataPacketReceiveEvent(
     $session,
     (new ReflectionClass(InventoryTransactionPacket::class))->newInstanceWithoutConstructor()
+));
+$listener->handleDataPacket(new DataPacketReceiveEvent(
+    $session,
+    (new ReflectionClass(LoginPacket::class))->newInstanceWithoutConstructor()
 ));
 
 $player = (new ReflectionClass(PacketGuardPlayer::class))->newInstanceWithoutConstructor();
@@ -92,5 +110,22 @@ $listener->handleDataPacket(new DataPacketReceiveEvent(
 if (!$inventory->getItem(0)->equals(VanillaItems::DIAMOND()) || $inventory->getItem(0)->getCount() !== 1) {
     throw new RuntimeException('Normal transaction changed the live inventory');
 }
+$inboundClose = (new ReflectionClass(ContainerClosePacket::class))->newInstanceWithoutConstructor();
+$inboundClose->windowId = 42;
+$inboundClose->server = false;
+$listener->handleDataPacket(new DataPacketReceiveEvent($session, $inboundClose));
+$sent = $session->sent;
+if (count($sent) !== 1 || !$sent[0] instanceof ContainerClosePacket) {
+    throw new RuntimeException('Trade window close response was not sent once');
+}
+$close = $sent[0];
+if ($close->windowId !== 255 || $close->server !== false) {
+    throw new RuntimeException('Trade window close packet changed its target or sender');
+}
+$closeReflection = new ReflectionClass($close);
+if ($closeReflection->hasProperty('windowType') &&
+    $closeReflection->getProperty('windowType')->getValue($close) !== WindowTypes::TRADING) {
+    throw new RuntimeException('Trade window close packet has the wrong window type');
+}
 
-echo "PASS: invalid trade packets and normal inventory action do not change inventory\n";
+echo "PASS: invalid trade packets preserve inventory and close packet matches the protocol\n";

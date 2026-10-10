@@ -1,0 +1,109 @@
+name: Build and validate TradeNPC
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Analyze API 5 source and build plugin PHAR
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out TradeNPC source collection
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Check out Axolotl-PM 5.0.0 source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: axolotl-pm/PocketMine-MP
+          ref: b16cc69974d4e805d21e6328ab77c0e17cd7116d
+          path: .devtools-dependencies/axolotl-5.0.0
+          persist-credentials: false
+
+      - name: Check out Axolotl-PM 5.49.1 source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: axolotl-pm/PocketMine-MP
+          ref: dfe0d07e48a9e8d5a4a242fa43ff1cd3b743a955
+          path: .devtools-dependencies/axolotl-5.49.1
+          persist-credentials: false
+
+      - name: Check out InvMenu 4.6.1 source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: Muqsit/InvMenu
+          ref: 20ffa94a2dde27d51274e43d498835d608a6f861
+          path: .devtools-dependencies/virions/InvMenu
+          persist-credentials: false
+
+      - name: Check out Axolotl PHP setup helper
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: axolotl-pm/setup-php-action
+          ref: b8c3f9add4f2ad4a5e2624a1112aba899ee8db0e
+          path: .devtools-dependencies/setup-php-action
+          persist-credentials: false
+
+      - name: Set up Axolotl PHP environment
+        shell: bash
+        env:
+          INPUT_PHP-VERSION: "8.1"
+          INPUT_PM-VERSION-MAJOR: "5"
+          INPUT_INSTALL-PATH: ./.php-bin
+        run: node .devtools-dependencies/setup-php-action/dist/index.js
+
+      - name: Lint API 5 plugin and fixture PHP
+        shell: bash
+        run: find TradeNPC-main/src TradeNPC-main/tests -name '*.php' -print0 | xargs -0 -n1 php -l
+
+      - name: Analyze both API 5 revisions and build with pinned DevTools
+        id: build
+        uses: NhanAZ/DevTools@6606444fc32787a3e50275fdb668c2310e899740 # v1.0.3
+        with:
+          project: TradeNPC-main
+          virions: .devtools-dependencies/virions
+          output: build
+          phpstan: max
+          phpstan-server: |
+            .devtools-dependencies/axolotl-5.0.0
+            .devtools-dependencies/axolotl-5.49.1
+          phpstan-paths: .devtools-dependencies/virions/InvMenu/src
+
+      - name: Run packet, settlement, recipe and NBT fixtures
+        shell: bash
+        run: |
+          set -euo pipefail
+          for source in .devtools-dependencies/axolotl-5.0.0 .devtools-dependencies/axolotl-5.49.1; do
+            export AXOLOTL_AUTOLOAD="$GITHUB_WORKSPACE/$source/vendor/autoload.php"
+            for fixture in packet-guard trade-settlement recipe-input shop-nbt; do
+              php "TradeNPC-main/tests/$fixture.php"
+            done
+          done
+
+      - name: Verify plugin PHAR contents and checksum
+        shell: bash
+        env:
+          PHAR_PATH: ${{ steps.build.outputs.phar }}
+          PHAR_SHA256: ${{ steps.build.outputs.sha256 }}
+          BUILD_METADATA: ${{ steps.build.outputs.metadata }}
+        run: |
+          set -euo pipefail
+          test "$(sha256sum "$PHAR_PATH" | cut -d ' ' -f 1)" = "$PHAR_SHA256"
+          php -r '$p=new Phar(getenv("PHAR_PATH")); foreach(["plugin.yml","LICENSE","src/TradeNPC/Main.php","src/TradeNPC/TradePacketFactory.php","META-INF/virions/InvMenu/LICENSE"] as $f){if(!$p->offsetExists($f)){throw new RuntimeException("Missing PHAR entry: ".$f);}}'
+          cp "$BUILD_METADATA" build/build-metadata.json
+
+      - name: Upload verified TradeNPC artifact
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: TradeNPC-${{ github.sha }}
+          path: |
+            ${{ steps.build.outputs.phar }}
+            build/build-metadata.json
+          if-no-files-found: error
+          retention-days: 14
