@@ -20,6 +20,7 @@ use pocketmine\entity\Human;
 use pocketmine\entity\Location;
 use pocketmine\event\inventory\InventoryOpenEvent;
 use pocketmine\event\Listener;
+use pocketmine\item\Item;
 use pocketmine\item\VanillaItems;
 use pocketmine\nbt\tag\ByteArrayTag;
 use pocketmine\nbt\tag\CompoundTag;
@@ -41,6 +42,7 @@ class Main extends PluginBase implements Listener
 
     public $currentWindow = null;
 
+    /** @var array<int, Item> */
     public $fullItem = [];
 
     public InvMenu $menu;

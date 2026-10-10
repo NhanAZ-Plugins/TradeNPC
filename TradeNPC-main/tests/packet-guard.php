@@ -47,10 +47,13 @@ class PacketGuardNpc extends TradeNPC {
 
 $listener = new EventListener((new ReflectionClass(Main::class))->newInstanceWithoutConstructor());
 $session = (new ReflectionClass(NetworkSession::class))->newInstanceWithoutConstructor();
-$completeTrade = static fn (int $index): DataPacketReceiveEvent => new DataPacketReceiveEvent(
-    $session,
-    ActorEventPacket::create(0, ActorEvent::COMPLETE_TRADE, $index, null)
-);
+$completeTrade = static function (int $index) use ($session): DataPacketReceiveEvent {
+    $packet = (new ReflectionClass(ActorEventPacket::class))->newInstanceWithoutConstructor();
+    $packet->actorRuntimeId = 0;
+    $packet->eventId = ActorEvent::COMPLETE_TRADE;
+    $packet->eventData = $index;
+    return new DataPacketReceiveEvent($session, $packet);
+};
 
 $listener->handleDataPacket($completeTrade(0));
 $listener->handleDataPacket(new DataPacketReceiveEvent(

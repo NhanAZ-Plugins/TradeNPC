@@ -40,25 +40,18 @@ class EventListener implements Listener
         $plugin = $this->plugin;
         if ($plugin->turn and $plugin->name == $player->getName()) {
             $entity = $plugin->getEntityName($chat);
-            if ($entity === null) {
+            if (!$entity instanceof TradeNPC) {
                 return;
             }
-            for ($i = 0; $i <= $plugin->fullItem; $i++) {
-                $item1 = $plugin->fullItem[$i];
-                $item2 = $plugin->fullItem[$i + 9];
-                $item3 = $plugin->fullItem[$i + 18];
-                if ($item1->isNull() or $item2->isNull() or $item3->isNull()) {
-                    unset(TradeDataPool::$editNPCData[$player->getName()]);
+            for ($i = 0; $i < 9; $i++) {
+                $item1 = $plugin->fullItem[$i] ?? null;
+                $item2 = $plugin->fullItem[$i + 9] ?? null;
+                $item3 = $plugin->fullItem[$i + 18] ?? null;
+                if (!$item1 instanceof Item || !$item2 instanceof Item || !$item3 instanceof Item ||
+                    $item1->isNull() || $item2->isNull() || $item3->isNull()) {
                     break;
                 }
-                TradeDataPool::$editNPCData[$player->getName()]["buyA"] = $item1;
-                TradeDataPool::$editNPCData[$player->getName()]["buyB"] = $item2;
-                TradeDataPool::$editNPCData[$player->getName()]["sell"] = $item3;
-                $buyA = TradeDataPool::$editNPCData[$player->getName()]["buyA"];
-                $buyB = TradeDataPool::$editNPCData[$player->getName()]["buyB"];
-                $sell = TradeDataPool::$editNPCData[$player->getName()]["sell"];
-                $entity->addTradeItem($buyA, $buyB, $sell);
-                unset(TradeDataPool::$editNPCData[$player->getName()]);
+                $entity->addTradeItem($item1, $item2, $item3);
                 $player->sendMessage("Added item to trade!");
                 $plugin->saveAll();
             }
