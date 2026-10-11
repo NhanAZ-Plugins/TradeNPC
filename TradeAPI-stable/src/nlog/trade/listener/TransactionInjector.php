@@ -35,6 +35,16 @@ class TransactionInjector implements Listener {
 
 	public function onDataPacketReceive(DataPacketReceiveEvent $event): void {
 		if (($pk = $event->getPacket()) instanceof InventoryTransactionPacket) {
+			$tradeAPI = TradeAPI::getInstance();
+			$player = $event->getOrigin()->getPlayer();
+			if ($tradeAPI === null || $player === null || !$tradeAPI->isTrading($player)
+				|| !($pk->trData instanceof NormalTransactionData)) {
+				return;
+			}
+			$inventory = TradeAPI::getInventory($player);
+			if ($inventory === null || $player->getCurrentWindow() !== $inventory) {
+				return;
+			}
 			/** @var InventoryTransactionPacket $pk */
 			$res = [];
 			$c = false;
@@ -42,14 +52,7 @@ class TransactionInjector implements Listener {
 				$after = $action;
 				if ($action->windowId === ContainerIds::UI && ($action->inventorySlot === 4 || $action->inventorySlot === 5 || $action->inventorySlot === 50)) {
 					if ($action->inventorySlot === 50) {
-						$tradeAPI = TradeAPI::getInstance();
-						$player = $event->getOrigin()->getPlayer();
-						if ($tradeAPI !== null && $player !== null && $tradeAPI->isTrading($player)) {
-							$action->inventorySlot = 51;
-						} else {
-							$res[] = $after;
-							continue;
-						}
+						$action->inventorySlot = 51;
 					}
 
 					$after = new NetworkTradeInventoryAction();

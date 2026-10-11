@@ -7,7 +7,10 @@ if (!is_string($autoload) || !is_file($autoload)) {
 	throw new RuntimeException('Set AXOLOTL_AUTOLOAD to a verified Axolotl-PM Composer autoloader');
 }
 require $autoload;
+require __DIR__ . '/../src/nlog/trade/inventory/PlayerTradeInventory.php';
 require __DIR__ . '/../src/nlog/trade/TradeAPI.php';
+require __DIR__ . '/../src/nlog/trade/inventory/action/NetworkTradeInventoryAction.php';
+require __DIR__ . '/../src/nlog/trade/inventory/action/NetworkFakeInventoryAction.php';
 require __DIR__ . '/../src/nlog/trade/listener/InventoryListener.php';
 require __DIR__ . '/../src/nlog/trade/listener/TransactionInjector.php';
 
@@ -23,12 +26,17 @@ use pocketmine\network\mcpe\protocol\ActorEventPacket;
 use pocketmine\network\mcpe\protocol\ContainerClosePacket;
 use pocketmine\network\mcpe\protocol\InventoryTransactionPacket;
 use pocketmine\network\mcpe\protocol\types\inventory\ContainerIds;
+use pocketmine\network\mcpe\protocol\types\inventory\ItemStack;
+use pocketmine\network\mcpe\protocol\types\inventory\ItemStackWrapper;
 use pocketmine\network\mcpe\protocol\types\inventory\NetworkInventoryAction;
 use pocketmine\network\mcpe\protocol\types\inventory\NormalTransactionData;
 use pocketmine\network\mcpe\protocol\types\ActorEvent;
 use pocketmine\player\Player;
 
 final class FixturePlayer extends Player {
+	public ?\pocketmine\inventory\Inventory $fixtureWindow = null;
+	public function getName(): string { return 'FixtureTrader'; }
+	public function getCurrentWindow(): ?\pocketmine\inventory\Inventory { return $this->fixtureWindow; }
 	public function __destruct() {}
 }
 
@@ -42,6 +50,8 @@ final class FixtureSession extends NetworkSession {
 final class FixtureTradeAPI extends TradeAPI {
 	public int $closeCalls = 0;
 	public int $inventoryCloseCalls = 0;
+	public bool $active = false;
+	public function isTrading(Player $player): bool { return $this->active; }
 	public static function getInventory(Player $player): ?PlayerTradeInventory {
 		return null;
 	}
@@ -114,4 +124,46 @@ if ($packet->trData !== $transaction || $action->inventorySlot !== 50) {
 	throw new RuntimeException('Absent TradeAPI instance rewrote a trade transaction');
 }
 
-echo "PASS: archived trade listener guards console, unbound sessions, absent inventories and transactions\n";
+$actions = [];
+foreach ([4, 5, 50] as $slot) {
+	$other = new NetworkInventoryAction();
+	$other->sourceType = NetworkInventoryAction::SOURCE_CONTAINER;
+	$other->windowId = ContainerIds::UI;
+	$other->inventorySlot = $slot;
+	$other->oldItem = ItemStackWrapper::legacy(ItemStack::null());
+	$other->newItem = ItemStackWrapper::legacy(ItemStack::null());
+	$actions[] = $other;
+}
+$otherTransaction = NormalTransactionData::new($actions);
+$otherPacket = InventoryTransactionPacket::create(0, [], $otherTransaction);
+$plugin->onLoad();
+$plugin->active = true;
+$injector->onDataPacketReceive(new DataPacketReceiveEvent($session, $otherPacket));
+if ($otherPacket->trData !== $otherTransaction || array_map(static fn(NetworkInventoryAction $item): int => $item->inventorySlot, $actions) !== [4, 5, 50]) {
+	throw new RuntimeException('Trade action rewrite touched a player with no open trade window');
+}
+
+TradeAPI::addInventory($player);
+$inventory = TradeAPI::getInventory($player);
+if ($inventory === null) {
+	throw new RuntimeException('Fixture trade inventory was not created');
+}
+$player->fixtureWindow = new \pocketmine\inventory\SimpleInventory(3);
+$injector->onDataPacketReceive(new DataPacketReceiveEvent($session, $otherPacket));
+if ($otherPacket->trData !== $otherTransaction || $actions[2]->inventorySlot !== 50) {
+	throw new RuntimeException('Trade action rewrite touched another open inventory');
+}
+$player->fixtureWindow = $inventory;
+$plugin->active = false;
+$injector->onDataPacketReceive(new DataPacketReceiveEvent($session, $otherPacket));
+if ($otherPacket->trData !== $otherTransaction || $actions[2]->inventorySlot !== 50) {
+	throw new RuntimeException('Trade action rewrite touched an inactive trade window');
+}
+$plugin->active = true;
+$injector->onDataPacketReceive(new DataPacketReceiveEvent($session, $otherPacket));
+if ($otherPacket->trData === $otherTransaction || $actions[2]->inventorySlot !== 51) {
+	throw new RuntimeException('Active trade window did not route the legacy trade actions');
+}
+TradeAPI::removeInventory($player);
+
+echo "PASS: archived trade listener guards console, unbound sessions and active trade routing\n";
