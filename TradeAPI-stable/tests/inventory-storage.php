@@ -83,4 +83,4 @@ if (!$fake->getItem(0)->equalsExact(VanillaItems::STICK())) {
 	throw new RuntimeException('Fake inventory did not update its slot');
 }
 
-echo "PASS: archived trade inventory stores items, opens by actor ID and returns only paid inputs\n";
+echo "PASS: archived trade inventory stores items, opens by actor ID and returns inputs without granting output\n";
