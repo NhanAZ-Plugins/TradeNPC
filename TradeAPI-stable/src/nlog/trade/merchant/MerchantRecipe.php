@@ -32,7 +32,6 @@ class MerchantRecipe {
 	 * @param  Item|int|float|null  $v
 	 * @param  int|float            $minValue
 	 *
-	 * @return CompoundTag
 	 */
 	private static function add(CompoundTag $tag, string $k, $v, $minValue = 0): void {
 		if (is_int($v)) {
@@ -43,7 +42,7 @@ class MerchantRecipe {
 
 		if (is_float($v)) {
 			if ($v > $minValue) {
-				$tag->setInt($k, $v);
+				$tag->setFloat($k, $v);
 			}
 		}
 
@@ -157,6 +156,7 @@ class MerchantRecipe {
 		self::add($tag, "tier", $this->tier, -1);
 		self::add($tag, "buyCountA", $this->buyCountA);
 		self::add($tag, "buyCountB", $this->buyCountB);
+		self::add($tag, "maxUses", $this->maxUses);
 		self::add($tag, "uses", max($this->uses, 0), -1);
 		self::add($tag, "rewardExp", max($this->rewardExp, 0));
 		self::add($tag, "demand", max($this->demand, 0));

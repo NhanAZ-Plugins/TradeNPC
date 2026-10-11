@@ -59,11 +59,9 @@ class MerchantRecipeList {
 
 	public function toNBT(bool $cache = true): ListTag {
 		if (!$cache or $this->changed) {
-			if ($this->nbt === null) {
-				$this->nbt = new ListTag(array_map(function (MerchantRecipe $recipe): CompoundTag {
-					return $recipe->toNBT();
-				}, $this->recipes));
-			}
+			$this->nbt = new ListTag(array_map(function (MerchantRecipe $recipe): CompoundTag {
+				return $recipe->toNBT();
+			}, $this->recipes));
 
 			$this->changed = false;
 		}

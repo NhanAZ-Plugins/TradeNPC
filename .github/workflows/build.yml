@@ -58,9 +58,9 @@ jobs:
           INPUT_INSTALL-PATH: ./.php-bin
         run: node .devtools-dependencies/setup-php-action/dist/index.js
 
-      - name: Lint API 5 plugin and fixture PHP
+      - name: Lint selected plugin and archived merchant PHP
         shell: bash
-        run: find TradeNPC-main/src TradeNPC-main/tests -name '*.php' -print0 | xargs -0 -n1 php -l
+        run: find TradeNPC-main/src TradeNPC-main/tests TradeAPI-stable/src TradeAPI-stable/tests -name '*.php' -print0 | xargs -0 -n1 php -l
 
       - name: Analyze both API 5 revisions and build with pinned DevTools
         id: build
@@ -84,6 +84,7 @@ jobs:
             for fixture in packet-guard trade-settlement recipe-input shop-nbt; do
               php "TradeNPC-main/tests/$fixture.php"
             done
+            php TradeAPI-stable/tests/merchant-recipes.php
           done
 
       - name: Verify PHAR contents, source boundary, and checksum
