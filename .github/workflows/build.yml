@@ -84,7 +84,9 @@ jobs:
             for fixture in packet-guard trade-settlement recipe-input shop-nbt; do
               php "TradeNPC-main/tests/$fixture.php"
             done
-            php TradeAPI-stable/tests/merchant-recipes.php
+            for fixture in merchant-recipes inventory-storage; do
+              php "TradeAPI-stable/tests/$fixture.php"
+            done
           done
 
       - name: Verify PHAR contents, source boundary, and checksum

@@ -20,11 +20,10 @@
 
 namespace nlog\trade\inventory;
 
-use pocketmine\inventory\BaseInventory;
+use pocketmine\inventory\SimpleInventory;
 use pocketmine\item\Item;
-use pocketmine\item\VanillaItems;
 
-class FakeInventory extends BaseInventory {
+class FakeInventory extends SimpleInventory {
 
 	public function __construct(Item $item) {
 		parent::__construct(1);
@@ -39,23 +38,4 @@ class FakeInventory extends BaseInventory {
 		return "FakeInventory";
 	}
 
-	public function internalSetItem(int $index, Item $item): void {
-	}
-
-	public function internalSetContents(array $items): void {
-	}
-
-	public function getSize(): int {
-		return 3;
-	}
-
-	public function getItem(int $index): Item {
-		var_dump('FakeInventory::class', $index);
-		return VanillaItems::AIR();
-	}
-
-	public function getContents(bool $includeEmpty = false): array {
-		var_dump('FakeInventory::class', $includeEmpty);
-		return [];
-	}
 }

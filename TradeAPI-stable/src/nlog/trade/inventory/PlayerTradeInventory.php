@@ -20,12 +20,10 @@
 
 namespace nlog\trade\inventory;
 
-use pocketmine\inventory\BaseInventory;
-use pocketmine\item\Item;
-use pocketmine\item\VanillaItems;
+use pocketmine\inventory\SimpleInventory;
 use pocketmine\player\Player;
 
-class PlayerTradeInventory extends BaseInventory{
+class PlayerTradeInventory extends SimpleInventory{
 
 	/** @var Player */
 	protected $holder;
@@ -46,27 +44,4 @@ class PlayerTradeInventory extends BaseInventory{
 		return "PlayerTradeInventory";
 	}
 
-	public function internalSetItem(int $index, Item $item): void {
-	}
-
-	public function getDefaultSize() : int{
-		return 3;
-	}
-
-	public function internalSetContents(array $items): void {
-	}
-
-	public function getSize(): int {
-		return 3;
-	}
-
-	public function getItem(int $index): Item {
-		var_dump('PlayerTradeInventory::class', $index);
-		return VanillaItems::AIR();
-	}
-
-	public function getContents(bool $includeEmpty = false): array {
-		var_dump('PlayerTradeInventory::class', $includeEmpty);
-		return [];
-	}
 }
