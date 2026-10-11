@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use pocketmine\event\server\DataPacketReceiveEvent;
+use pocketmine\event\server\DataPacketDecodeEvent;
 use pocketmine\entity\Human;
 use pocketmine\inventory\PlayerInventory;
 use pocketmine\item\VanillaItems;
@@ -15,6 +16,7 @@ use pocketmine\network\mcpe\protocol\ClientboundPacket;
 use pocketmine\network\mcpe\protocol\ContainerClosePacket;
 use pocketmine\network\mcpe\protocol\InventoryTransactionPacket;
 use pocketmine\network\mcpe\protocol\LoginPacket;
+use pocketmine\network\mcpe\protocol\ProtocolInfo;
 use pocketmine\network\mcpe\protocol\types\ActorEvent;
 use pocketmine\network\mcpe\protocol\types\inventory\ItemStack;
 use pocketmine\network\mcpe\protocol\types\inventory\ItemStackWrapper;
@@ -82,16 +84,38 @@ $listener->handleDataPacket(new DataPacketReceiveEvent(
 $player = (new ReflectionClass(PacketGuardPlayer::class))->newInstanceWithoutConstructor();
 (new ReflectionProperty(Player::class, 'username'))->setValue($player, 'PacketGuardTester');
 (new ReflectionProperty(NetworkSession::class, 'player'))->setValue($session, $player);
+$blockedDecode = new DataPacketDecodeEvent($session, ProtocolInfo::ACTOR_EVENT_PACKET, '');
+$blockedDecode->cancel();
+$listener->handleDecode($blockedDecode);
+if (!$blockedDecode->isCancelled()) {
+    throw new RuntimeException('Actor event decode was enabled without an active trade');
+}
 $npc = (new ReflectionClass(PacketGuardNpc::class))->newInstanceWithoutConstructor();
 (new ReflectionProperty(TradeNPC::class, 'shop'))->setValue(
     $npc,
     CompoundTag::create()->setTag('Recipes', new ListTag([CompoundTag::create()], NBT::TAG_Compound))
 );
 TradeDataPool::$interactNPCData[$player->getName()] = $npc;
+$tradeDecode = new DataPacketDecodeEvent($session, ProtocolInfo::ACTOR_EVENT_PACKET, '');
+$tradeDecode->cancel();
+$listener->handleDecode($tradeDecode);
+if ($tradeDecode->isCancelled()) {
+    throw new RuntimeException('Active trade actor event remained blocked before decode');
+}
+$otherDecode = new DataPacketDecodeEvent($session, ProtocolInfo::LOGIN_PACKET, '');
+$otherDecode->cancel();
+$listener->handleDecode($otherDecode);
+if (!$otherDecode->isCancelled()) {
+    throw new RuntimeException('Unrelated packet was enabled during a trade');
+}
 
 $listener->handleDataPacket($completeTrade(-1));
 $listener->handleDataPacket($completeTrade(1));
-$listener->handleDataPacket($completeTrade(0));
+$completeEvent = $completeTrade(0);
+$listener->handleDataPacket($completeEvent);
+if (!$completeEvent->isCancelled()) {
+    throw new RuntimeException('Completed trade actor event reached the default packet handler');
+}
 
 $inventory = new PlayerInventory($player);
 (new ReflectionProperty(Human::class, 'inventory'))->setValue($player, $inventory);

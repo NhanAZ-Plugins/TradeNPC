@@ -6,12 +6,14 @@ namespace TradeNPC\listener;
 
 use pocketmine\event\Listener;
 use pocketmine\event\player\PlayerChatEvent;
+use pocketmine\event\server\DataPacketDecodeEvent;
 use pocketmine\event\server\DataPacketReceiveEvent;
 use pocketmine\item\Item;
 use pocketmine\nbt\tag\CompoundTag;
 use pocketmine\network\mcpe\protocol\ActorEventPacket;
 use pocketmine\network\mcpe\protocol\ContainerClosePacket;
 use pocketmine\network\mcpe\protocol\InventoryTransactionPacket;
+use pocketmine\network\mcpe\protocol\ProtocolInfo;
 use pocketmine\network\mcpe\protocol\types\ActorEvent;
 use pocketmine\network\mcpe\protocol\types\inventory\UseItemOnEntityTransactionData;
 use pocketmine\player\Player;
@@ -60,6 +62,17 @@ class EventListener implements Listener
         }
     }
 
+    public function handleDecode(DataPacketDecodeEvent $event): void
+    {
+        if ($event->getPacketId() !== ProtocolInfo::ACTOR_EVENT_PACKET) {
+            return;
+        }
+        $player = $event->getOrigin()->getPlayer();
+        if ($player instanceof Player && isset(TradeDataPool::$interactNPCData[$player->getName()])) {
+            $event->uncancel();
+        }
+    }
+
     public function handleDataPacket(DataPacketReceiveEvent $event): void
     {
         $plugin = $this->plugin;
@@ -67,6 +80,7 @@ class EventListener implements Listener
         $packet = $event->getPacket();
         if ($packet instanceof ActorEventPacket && $player instanceof Player) {
             if ($packet->eventId === ActorEvent::COMPLETE_TRADE) {
+                $event->cancel();
                 $npc = TradeDataPool::$interactNPCData[$player->getName()] ?? null;
                 $recipes = $npc?->getShopCompoundTag()?->getListTag("Recipes");
                 $recipeIndex = $packet->eventData;
