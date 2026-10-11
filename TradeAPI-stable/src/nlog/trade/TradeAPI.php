@@ -42,7 +42,7 @@ use pocketmine\plugin\PluginBase;
 
 class TradeAPI extends PluginBase {
 
-	/** @var PlayerTradeInventory */
+	/** @var array<string, PlayerTradeInventory> */
 	private static $inventory = [];
 
 	public static function addInventory(Player $player): void {
