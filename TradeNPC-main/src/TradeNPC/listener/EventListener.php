@@ -16,6 +16,7 @@ use pocketmine\network\mcpe\protocol\types\ActorEvent;
 use pocketmine\network\mcpe\protocol\types\inventory\UseItemOnEntityTransactionData;
 use pocketmine\player\Player;
 use TradeNPC\entity\TradeNPC;
+use TradeNPC\inventory\TradeInventory;
 use TradeNPC\Main;
 use TradeNPC\TradeDataPool;
 use TradeNPC\TradePacketFactory;
@@ -90,6 +91,7 @@ class EventListener implements Listener
         if ($packet instanceof InventoryTransactionPacket && $player instanceof Player && $packet->trData instanceof UseItemOnEntityTransactionData) {
             $entity = $player->getWorld()->getEntity($packet->trData->getActorRuntimeId());
             if ($entity instanceof TradeNPC) {
+                TradeInventory::registerNetworkOpen($player);
                 $plugin->setCWindow($entity->getTradeInventory(), $player);
             }
         }

@@ -9,6 +9,8 @@ use pocketmine\nbt\NBT;
 use pocketmine\nbt\tag\CompoundTag;
 use pocketmine\nbt\tag\ListTag;
 use pocketmine\nbt\TreeRoot;
+use pocketmine\network\mcpe\protocol\ContainerOpenPacket;
+use pocketmine\network\mcpe\protocol\types\inventory\WindowTypes;
 use pocketmine\player\Player;
 use TradeNPC\entity\TradeNPC;
 use TradeNPC\inventory\TradeInventory;
@@ -70,6 +72,13 @@ if ($npc->getShopCompoundTag() !== $shop || $npc->getSaveNBT() !== (new LittleEn
     throw new RuntimeException('TreeRoot-backed shop changed during serialization');
 }
 $inventory = new TradeInventory($npc);
+(new ReflectionProperty(\pocketmine\entity\Entity::class, 'id'))->setValue($npc, 77);
+$open = (new ReflectionMethod(TradeInventory::class, 'createContainerOpen'))->invoke(null, 42, $inventory);
+if (count($open) !== 1 || !$open[0] instanceof ContainerOpenPacket ||
+    $open[0]->windowId !== 42 || $open[0]->windowType !== WindowTypes::TRADING ||
+    $open[0]->actorUniqueId !== 77) {
+    throw new RuntimeException('Trade container packet did not use the assigned window and NPC');
+}
 $compoundOffers = $inventory->getOffers($shop);
 $treeOffers = $inventory->getOffers(new TreeRoot($shop));
 if ($compoundOffers === null || $treeOffers === null ||
