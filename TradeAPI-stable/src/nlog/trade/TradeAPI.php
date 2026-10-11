@@ -177,7 +177,10 @@ class TradeAPI extends PluginBase {
 		}
 	}
 
-	public function doCloseInventory(PlayerTradeInventory $inventory): void {
+	public function doCloseInventory(?PlayerTradeInventory $inventory): void {
+		if ($inventory === null) {
+			return;
+		}
 		for ($slot = 0; $slot <= 1; $slot++) {
 			$item = $inventory->getItem($slot);
 

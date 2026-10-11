@@ -84,7 +84,7 @@ jobs:
             for fixture in packet-guard trade-settlement recipe-input shop-nbt; do
               php "TradeNPC-main/tests/$fixture.php"
             done
-            for fixture in merchant-recipes inventory-storage; do
+            for fixture in merchant-recipes inventory-storage listener-guards; do
               php "TradeAPI-stable/tests/$fixture.php"
             done
           done
