@@ -30,9 +30,7 @@ use pocketmine\event\player\PlayerJoinEvent;
 use pocketmine\event\player\PlayerQuitEvent;
 use pocketmine\event\server\CommandEvent;
 use pocketmine\event\server\DataPacketReceiveEvent;
-use pocketmine\network\mcpe\protocol\ActorEventPacket;
 use pocketmine\network\mcpe\protocol\ContainerClosePacket;
-use pocketmine\network\mcpe\protocol\types\ActorEvent;
 use pocketmine\player\Player;
 
 class InventoryListener implements Listener {
@@ -52,8 +50,6 @@ class InventoryListener implements Listener {
 		}
 		if ($pk instanceof ContainerClosePacket && $pk->windowId === 255) {
 			$this->plugin->closeWindow($player, false);
-		} elseif ($pk instanceof ActorEventPacket && $pk->eventId !== ActorEvent::COMPLETE_TRADE) {
-			$this->plugin->doCloseInventory($this->plugin->getInventory($player));
 		}
 	}
 

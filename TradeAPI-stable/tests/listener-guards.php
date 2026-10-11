@@ -99,8 +99,8 @@ if ($plugin->inventoryCloseCalls !== 1) {
 }
 $actor->eventId = ActorEvent::JUMP;
 $listener->onDataPacketReceive(new DataPacketReceiveEvent($session, $actor));
-if ($plugin->inventoryCloseCalls !== 2) {
-	throw new RuntimeException('Other actor event did not close the trade inventory');
+if ($plugin->inventoryCloseCalls !== 1) {
+	throw new RuntimeException('Unrelated actor event cleared trade inventory');
 }
 
 $base = (new ReflectionClass(TradeAPI::class))->newInstanceWithoutConstructor();
@@ -154,6 +154,10 @@ if ($otherPacket->trData !== $otherTransaction || $actions[2]->inventorySlot !==
 	throw new RuntimeException('Trade action rewrite touched another open inventory');
 }
 $player->fixtureWindow = $inventory;
+$listener->onDataPacketReceive(new DataPacketReceiveEvent($session, $actor));
+if ($plugin->inventoryCloseCalls !== 1) {
+	throw new RuntimeException('Actor event cleared an active trade window');
+}
 $plugin->active = false;
 $injector->onDataPacketReceive(new DataPacketReceiveEvent($session, $otherPacket));
 if ($otherPacket->trData !== $otherTransaction || $actions[2]->inventorySlot !== 50) {
