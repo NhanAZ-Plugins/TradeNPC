@@ -28,11 +28,8 @@ use nlog\trade\merchant\TraderProperties;
 use pocketmine\entity\Entity;
 use pocketmine\nbt\tag\CompoundTag;
 use pocketmine\nbt\tag\ListTag;
-use pocketmine\network\mcpe\protocol\AddActorPacket;
 use pocketmine\network\mcpe\protocol\ContainerClosePacket;
-use pocketmine\network\mcpe\protocol\RemoveActorPacket;
 use pocketmine\network\mcpe\protocol\types\CacheableNbt;
-use pocketmine\network\mcpe\protocol\types\entity\EntityIds;
 use pocketmine\network\mcpe\protocol\types\entity\EntityMetadataProperties;
 use pocketmine\network\mcpe\protocol\types\entity\IntMetadataProperty;
 use pocketmine\network\mcpe\protocol\types\inventory\WindowTypes;
@@ -101,7 +98,12 @@ class TradeAPI extends PluginBase {
 	 * @param TraderProperties   $properties
 	 */
 	public function sendWindow(Player $player, MerchantRecipeList $recipeList, TraderProperties $properties): void {
+		$inventoryManager = $player->getNetworkSession()->getInvManager();
+		if ($inventoryManager === null) {
+			throw new \LogicException("Cannot open a trade window before the player inventory is ready");
+		}
 		$this->closeWindow($player);
+		$properties->eid = $properties->entity instanceof Entity ? $properties->entity->getId() : Entity::nextRuntimeId();
 		$offers = new CacheableNbt(
 			CompoundTag::create()
 				->setTag("Recipes", $recipeList->toNBT())
@@ -114,7 +116,7 @@ class TradeAPI extends PluginBase {
 				])) //TODO: move to merchant recipes list
 		);
 		$pk = UpdateTradePacket::create(
-			windowId: $player->getNetworkSession()->getInvManager()->getCurrentWindowId(),
+			windowId: $inventoryManager->getCurrentWindowId(),
 			windowType: WindowTypes::TRADING,
 			windowSlotCount: 0,
 			tradeTier: $properties->tradeTier,
@@ -134,20 +136,15 @@ class TradeAPI extends PluginBase {
 		];
 
 		if ($properties->entity instanceof Entity) {
-			$pk->traderEid = $properties->entity->getId();
-
 			foreach ($metadata as $k => $metadataProperty) {
 				$properties->entity->getNetworkProperties()->setInt($k, $metadataProperty->getValue());
 			}
 		} else {
-			$apk = new AddActorPacket();
-			$apk->type = EntityIds::NPC;
-			$apk->position = $player->getPosition()->add(0, -2, 0);
-			$apk->metadata = $metadata;
-
-			$properties->eid = $apk->entityRuntimeId = $pk->traderEid = Entity::nextRuntimeId();
-
-			$player->getNetworkSession()->sendDataPacket($apk);
+			$player->getNetworkSession()->sendDataPacket(TradePacketFactory::fakeTrader(
+				$properties->eid,
+				$player->getPosition()->add(0, -2, 0),
+				$metadata
+			));
 		}
 
 		$this->process[$player->getName()] = clone $properties;
@@ -166,9 +163,7 @@ class TradeAPI extends PluginBase {
 			if ($prop->entity instanceof Entity) {
 				$prop->entity->getNetworkProperties()->setInt(EntityMetadataProperties::TRADING_PLAYER_EID, -1);
 			} else {
-				$pk = new RemoveActorPacket();
-				$pk->entityUniqueId = $prop->eid;
-				$player->getNetworkSession()->sendDataPacket($pk);
+				$player->getNetworkSession()->sendDataPacket(TradePacketFactory::removeFakeTrader($prop->eid));
 			}
 
 			$this->doCloseInventory(self::getInventory($player));

@@ -84,7 +84,7 @@ jobs:
             for fixture in packet-guard trade-settlement recipe-input shop-nbt; do
               php "TradeNPC-main/tests/$fixture.php"
             done
-            for fixture in merchant-recipes inventory-storage listener-guards; do
+            for fixture in merchant-recipes inventory-storage listener-guards packet-headers; do
               php "TradeAPI-stable/tests/$fixture.php"
             done
           done
@@ -98,7 +98,7 @@ jobs:
         run: |
           set -euo pipefail
           test "$(sha256sum "$PHAR_PATH" | cut -d ' ' -f 1)" = "$PHAR_SHA256"
-          php -r '$p=new Phar(getenv("PHAR_PATH")); foreach(["plugin.yml","LICENSE","src/TradeNPC/Main.php","src/TradeNPC/TradePacketFactory.php","META-INF/virions/InvMenu/LICENSE"] as $f){if(!$p->offsetExists($f)){throw new RuntimeException("Missing PHAR entry: ".$f);}} foreach(["src/nlog/trade/TradeAPI.php","TradeAPI-stable/plugin.yml","TradeNPC-Fixed-master/plugin.yml"] as $f){if($p->offsetExists($f)){throw new RuntimeException("Unrelated source entered PHAR: ".$f);}}'
+          php -r '$p=new Phar(getenv("PHAR_PATH")); foreach(["plugin.yml","LICENSE","src/TradeNPC/Main.php","src/TradeNPC/TradePacketFactory.php","META-INF/virions/InvMenu/LICENSE"] as $f){if(!$p->offsetExists($f)){throw new RuntimeException("Missing PHAR entry: ".$f);}} foreach(["src/nlog/trade/TradeAPI.php","src/nlog/trade/TradePacketFactory.php","TradeAPI-stable/plugin.yml","TradeNPC-Fixed-master/plugin.yml"] as $f){if($p->offsetExists($f)){throw new RuntimeException("Unrelated source entered PHAR: ".$f);}}'
           cp "$BUILD_METADATA" build/build-metadata.json
 
       - name: Upload verified TradeNPC artifact
