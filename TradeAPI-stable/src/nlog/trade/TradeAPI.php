@@ -28,7 +28,6 @@ use nlog\trade\merchant\TraderProperties;
 use pocketmine\entity\Entity;
 use pocketmine\nbt\tag\CompoundTag;
 use pocketmine\nbt\tag\ListTag;
-use pocketmine\network\mcpe\protocol\ContainerClosePacket;
 use pocketmine\network\mcpe\protocol\types\CacheableNbt;
 use pocketmine\network\mcpe\protocol\types\entity\EntityMetadataProperties;
 use pocketmine\network\mcpe\protocol\types\entity\IntMetadataProperty;
@@ -36,6 +35,7 @@ use pocketmine\network\mcpe\protocol\types\inventory\WindowTypes;
 use pocketmine\network\mcpe\protocol\UpdateTradePacket;
 use pocketmine\player\Player;
 use pocketmine\plugin\PluginBase;
+use pocketmine\scheduler\ClosureTask;
 
 class TradeAPI extends PluginBase {
 
@@ -103,7 +103,16 @@ class TradeAPI extends PluginBase {
 			throw new \LogicException("Cannot open a trade window before the player inventory is ready");
 		}
 		$this->closeWindow($player);
+		if(($inventory = self::getInventory($player)) === null){
+			self::addInventory($player);
+			$inventory = self::getInventory($player);
+		}
+		if($inventory === null){
+			throw new \LogicException("Trade inventory was not created");
+		}
 		$properties->eid = $properties->entity instanceof Entity ? $properties->entity->getId() : Entity::nextRuntimeId();
+		$inventory->setTraderActorId($properties->eid);
+		PlayerTradeInventory::registerNetworkOpen($player);
 		$offers = new CacheableNbt(
 			CompoundTag::create()
 				->setTag("Recipes", $recipeList->toNBT())
@@ -115,21 +124,8 @@ class TradeAPI extends PluginBase {
 					CompoundTag::create()->setInt("4", 310),
 				])) //TODO: move to merchant recipes list
 		);
-		$pk = UpdateTradePacket::create(
-			windowId: $inventoryManager->getCurrentWindowId(),
-			windowType: WindowTypes::TRADING,
-			windowSlotCount: 0,
-			tradeTier: $properties->tradeTier,
-			traderActorUniqueId: $properties->eid,
-			playerActorUniqueId: $player->getId(),
-			displayName: $properties->traderName,
-			isV2Trading: true,
-			isEconomyTrading: true,
-			offers: $offers
-		);
-
 		$metadata = [
-			EntityMetadataProperties::TRADE_TIER         => new IntMetadataProperty($pk->tradeTier),
+			EntityMetadataProperties::TRADE_TIER         => new IntMetadataProperty($properties->tradeTier),
 			EntityMetadataProperties::TRADE_XP           => new IntMetadataProperty($properties->xp),
 			EntityMetadataProperties::MAX_TRADE_TIER     => new IntMetadataProperty($properties->maxTradeTier),
 			EntityMetadataProperties::TRADING_PLAYER_EID => new IntMetadataProperty($player->getId())
@@ -147,17 +143,58 @@ class TradeAPI extends PluginBase {
 			));
 		}
 
+		try{
+			if(!$player->setCurrentWindow($inventory)){
+				throw new \LogicException("Trade inventory opening was cancelled");
+			}
+		}catch(\Throwable $error){
+			if($properties->entity instanceof Entity){
+				$properties->entity->getNetworkProperties()->setInt(EntityMetadataProperties::TRADING_PLAYER_EID, -1);
+			}else{
+				$player->getNetworkSession()->sendDataPacket(TradePacketFactory::removeFakeTrader($properties->eid));
+			}
+			throw $error;
+		}
 		$this->process[$player->getName()] = clone $properties;
+		$this->sendTradeUpdate($player, $inventory, $properties, $offers, 0);
+	}
 
-		$player->getNetworkSession()->sendDataPacket($pk);
+	/** @param CacheableNbt<CompoundTag> $offers */
+	private function sendTradeUpdate(Player $player, PlayerTradeInventory $inventory, TraderProperties $properties, CacheableNbt $offers, int $attempt) : void{
+		if(!$player->isConnected() || $player->getCurrentWindow() !== $inventory || !$this->isTrading($player)){
+			return;
+		}
+		$windowId = $player->getNetworkSession()->getInvManager()?->getWindowId($inventory);
+		if($windowId === null){
+			if($attempt >= 100){
+				$this->closeWindow($player);
+				return;
+			}
+			$this->getScheduler()->scheduleDelayedTask(new ClosureTask(function() use ($player, $inventory, $properties, $offers, $attempt) : void{
+				$this->sendTradeUpdate($player, $inventory, $properties, $offers, $attempt + 1);
+			}), 1);
+			return;
+		}
+		$player->getNetworkSession()->sendDataPacket(UpdateTradePacket::create(
+			windowId: $windowId,
+			windowType: WindowTypes::TRADING,
+			windowSlotCount: 0,
+			tradeTier: $properties->tradeTier,
+			traderActorUniqueId: $properties->eid,
+			playerActorUniqueId: $player->getId(),
+			displayName: $properties->traderName,
+			isV2Trading: true,
+			isEconomyTrading: true,
+			offers: $offers
+		));
 	}
 
 	public function closeWindow(Player $player, bool $sendPacket = true): void {
 		if (($prop = $this->process[$player->getName()] ?? null) instanceof TraderProperties) {
-			if ($sendPacket) {
-				$pk = new ContainerClosePacket();
-				$pk->windowId = WindowTypes::TRADING;
-				$player->getNetworkSession()->sendDataPacket($pk);
+			unset($this->process[$player->getName()]);
+			$inventory = self::getInventory($player);
+			if($sendPacket && $inventory !== null && $player->getCurrentWindow() === $inventory){
+				$player->removeCurrentWindow();
 			}
 
 			if ($prop->entity instanceof Entity) {
@@ -166,9 +203,7 @@ class TradeAPI extends PluginBase {
 				$player->getNetworkSession()->sendDataPacket(TradePacketFactory::removeFakeTrader($prop->eid));
 			}
 
-			$this->doCloseInventory(self::getInventory($player));
-
-			unset($this->process[$player->getName()]);
+			$this->doCloseInventory($inventory);
 		}
 	}
 

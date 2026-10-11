@@ -21,9 +21,16 @@
 namespace nlog\trade\inventory;
 
 use pocketmine\inventory\SimpleInventory;
+use pocketmine\inventory\Inventory;
+use pocketmine\network\mcpe\protocol\ClientboundPacket;
+use pocketmine\network\mcpe\protocol\ContainerOpenPacket;
+use pocketmine\network\mcpe\protocol\types\inventory\WindowTypes;
 use pocketmine\player\Player;
 
 class PlayerTradeInventory extends SimpleInventory{
+
+	private static ?\Closure $openCallback = null;
+	private int $traderActorId = 0;
 
 	/** @var Player */
 	protected $holder;
@@ -42,6 +49,30 @@ class PlayerTradeInventory extends SimpleInventory{
 
 	public function getName() : string{
 		return "PlayerTradeInventory";
+	}
+
+	public function setTraderActorId(int $traderActorId) : void{
+		$this->traderActorId = $traderActorId;
+	}
+
+	public static function registerNetworkOpen(Player $player) : void{
+		$manager = $player->getNetworkSession()->getInvManager();
+		if($manager === null){
+			throw new \LogicException("Network inventory manager is unavailable");
+		}
+		self::$openCallback ??= self::createContainerOpen(...);
+		$manager->getContainerOpenCallbacks()->add(self::$openCallback);
+	}
+
+	/** @return list<ClientboundPacket>|null */
+	private static function createContainerOpen(int $windowId, Inventory $inventory) : ?array{
+		if(!$inventory instanceof self){
+			return null;
+		}
+		if($inventory->traderActorId === 0){
+			throw new \LogicException("Trade inventory has no trader actor");
+		}
+		return [ContainerOpenPacket::entityInv($windowId, WindowTypes::TRADING, $inventory->traderActorId)];
 	}
 
 }

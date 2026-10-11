@@ -23,6 +23,7 @@ namespace nlog\trade\listener;
 
 use nlog\trade\TradeAPI;
 use pocketmine\event\block\BlockBreakEvent;
+use pocketmine\event\inventory\InventoryCloseEvent;
 use pocketmine\event\Listener;
 use pocketmine\event\player\PlayerDeathEvent;
 use pocketmine\event\player\PlayerJoinEvent;
@@ -60,6 +61,13 @@ class InventoryListener implements Listener {
 		$sender = $event->getSender();
 		if ($sender instanceof Player) {
 			$this->plugin->doCloseInventory($this->plugin->getInventory($sender));
+		}
+	}
+
+	public function onInventoryClose(InventoryCloseEvent $event): void {
+		$player = $event->getPlayer();
+		if ($event->getInventory() === $this->plugin->getInventory($player)) {
+			$this->plugin->closeWindow($player, false);
 		}
 	}
 
