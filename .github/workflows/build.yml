@@ -75,7 +75,7 @@ jobs:
             .devtools-dependencies/axolotl-5.49.1
           phpstan-paths: .devtools-dependencies/virions/InvMenu/src
 
-      - name: Run packet, settlement, recipe and NBT fixtures
+      - name: Run trade packet, settlement and inventory fixtures
         shell: bash
         run: |
           set -euo pipefail
@@ -84,7 +84,7 @@ jobs:
             for fixture in packet-guard trade-settlement recipe-input shop-nbt; do
               php "TradeNPC-main/tests/$fixture.php"
             done
-            for fixture in merchant-recipes inventory-storage listener-guards packet-headers; do
+            for fixture in merchant-recipes inventory-storage listener-guards packet-headers inventory-actions; do
               php "TradeAPI-stable/tests/$fixture.php"
             done
           done

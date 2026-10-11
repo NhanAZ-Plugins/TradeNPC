@@ -24,7 +24,6 @@ namespace nlog\trade\inventory\action;
 use nlog\trade\TradeAPI;
 use pocketmine\inventory\transaction\action\InventoryAction;
 use pocketmine\inventory\transaction\action\SlotChangeAction;
-use pocketmine\item\Item;
 use pocketmine\network\mcpe\protocol\types\inventory\ContainerIds;
 use pocketmine\network\mcpe\protocol\types\inventory\NetworkInventoryAction;
 use pocketmine\player\Player;
@@ -32,31 +31,28 @@ use UnexpectedValueException;
 
 class NetworkTradeInventoryAction extends NetworkInventoryAction {
 	public function createInventoryAction(Player $player): ?InventoryAction {
-		if ($this->oldItem instanceof Item) {
-			if ($this->oldItem->equalsExact($this->newItem)) {
-				//filter out useless noise in 1.13
-				return null;
-			}
-			switch ($this->sourceType) {
-				case self::SOURCE_CONTAINER:
-					$window = null;
-					$slot = $this->inventorySlot;
-					if ($this->windowId === ContainerIds::UI and ($slot === 4 || $slot === 5)) {
-						$window = TradeAPI::getInventory($player);
-						$slot -= 4;
-					}
-					if ($this->windowId === ContainerIds::UI and $slot === 51) {
-						$window = TradeAPI::getInventory($player);
-						$slot -= 49;
-					}
-					if ($window !== null) {
-						return new SlotChangeAction($window, $slot, $this->oldItem, $this->newItem);
-					}
-
-					throw new UnexpectedValueException("No open container with window ID $this->windowId");
-				default:
-					throw new UnexpectedValueException("Unknown inventory source type $this->sourceType");
-			}
+		if ($this->sourceType !== self::SOURCE_CONTAINER) {
+			throw new UnexpectedValueException("Unknown inventory source type $this->sourceType");
 		}
+		$slot = $this->inventorySlot;
+		if ($this->windowId === ContainerIds::UI && ($slot === 4 || $slot === 5 || $slot === 51)) {
+			$window = TradeAPI::getInventory($player);
+			$slot = $slot === 51 ? 2 : $slot - 4;
+		} else {
+			$window = null;
+		}
+		if ($window === null) {
+			throw new UnexpectedValueException("No open container with window ID $this->windowId");
+		}
+		if ($this->oldItem->getItemStack()->equals($this->newItem->getItemStack())) {
+			return null;
+		}
+		$converter = $player->getNetworkSession()->getTypeConverter();
+		return new SlotChangeAction(
+			$window,
+			$slot,
+			$converter->netItemStackToCore($this->oldItem->getItemStack()),
+			$converter->netItemStackToCore($this->newItem->getItemStack())
+		);
 	}
 }

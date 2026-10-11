@@ -24,30 +24,31 @@ namespace nlog\trade\inventory\action;
 use nlog\trade\inventory\FakeInventory;
 use pocketmine\inventory\transaction\action\InventoryAction;
 use pocketmine\inventory\transaction\action\SlotChangeAction;
-use pocketmine\item\Item;
 use pocketmine\network\mcpe\protocol\types\inventory\NetworkInventoryAction;
 use pocketmine\player\Player;
 use UnexpectedValueException;
 
 class NetworkFakeInventoryAction extends NetworkInventoryAction {
 	public function createInventoryAction(Player $player): ?InventoryAction {
-		if ($this->oldItem instanceof Item) {
-			if ($this->oldItem->equalsExact($this->newItem)) {
-				//filter out useless noise in 1.13
-				return null;
-			}
-			switch ($this->sourceType) {
-				case self::SOURCE_TODO:
-					if ($this->windowId === -30) { //fake inventory -> real inventory (slot 50)
-						return new SlotChangeAction(new FakeInventory($this->oldItem), $this->inventorySlot, $this->oldItem, $this->newItem);
-					}
-					if ($this->windowId === -31) { //real item -> fake inventory
-						return new SlotChangeAction(new FakeInventory($this->oldItem), $this->inventorySlot, $this->oldItem, $this->newItem);
-					}
-					throw new UnexpectedValueException("No open container with window ID $this->windowId");
-				default:
-					throw new UnexpectedValueException("Unknown inventory source type $this->sourceType");
-			}
+		if ($this->sourceType !== self::SOURCE_TODO) {
+			throw new UnexpectedValueException("Unknown inventory source type $this->sourceType");
 		}
+		if ($this->windowId !== -30 && $this->windowId !== -31) {
+			throw new UnexpectedValueException("No open container with window ID $this->windowId");
+		}
+		if ($this->inventorySlot !== 0) {
+			throw new UnexpectedValueException("Invalid fake inventory slot $this->inventorySlot");
+		}
+		if ($this->oldItem->getItemStack()->equals($this->newItem->getItemStack())) {
+			return null;
+		}
+		$converter = $player->getNetworkSession()->getTypeConverter();
+		$oldItem = $converter->netItemStackToCore($this->oldItem->getItemStack());
+		return new SlotChangeAction(
+			new FakeInventory($oldItem),
+			$this->inventorySlot,
+			$oldItem,
+			$converter->netItemStackToCore($this->newItem->getItemStack())
+		);
 	}
 }
