@@ -62,6 +62,10 @@ class PacketGuardNpc extends TradeNPC {
 }
 
 $listener = new EventListener((new ReflectionClass(Main::class))->newInstanceWithoutConstructor());
+$decodeTags = (new ReflectionMethod(EventListener::class, 'handleDecode'))->getDocComment();
+if ($decodeTags === false || !str_contains($decodeTags, '@handleCancelled')) {
+    throw new RuntimeException('Discarded actor events will not invoke the decode handler');
+}
 $session = (new ReflectionClass(PacketGuardSession::class))->newInstanceWithoutConstructor();
 $completeTrade = static function (int $index) use ($session): DataPacketReceiveEvent {
     $packet = (new ReflectionClass(ActorEventPacket::class))->newInstanceWithoutConstructor();

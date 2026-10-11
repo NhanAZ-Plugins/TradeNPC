@@ -62,6 +62,7 @@ class EventListener implements Listener
         }
     }
 
+    /** @handleCancelled */
     public function handleDecode(DataPacketDecodeEvent $event): void
     {
         if ($event->getPacketId() !== ProtocolInfo::ACTOR_EVENT_PACKET) {
