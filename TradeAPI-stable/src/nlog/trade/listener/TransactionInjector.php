@@ -33,7 +33,7 @@ use pocketmine\network\mcpe\protocol\types\inventory\NormalTransactionData;
 
 class TransactionInjector implements Listener {
 
-	public function onDataPacketReceive(DataPacketReceiveEvent $event) {
+	public function onDataPacketReceive(DataPacketReceiveEvent $event): void {
 		if (($pk = $event->getPacket()) instanceof InventoryTransactionPacket) {
 			/** @var InventoryTransactionPacket $pk */
 			$res = [];
@@ -42,7 +42,9 @@ class TransactionInjector implements Listener {
 				$after = $action;
 				if ($action->windowId === ContainerIds::UI && ($action->inventorySlot === 4 || $action->inventorySlot === 5 || $action->inventorySlot === 50)) {
 					if ($action->inventorySlot === 50) {
-						if (TradeAPI::getInstance()->isTrading($event->getOrigin()->getPlayer())) {
+						$tradeAPI = TradeAPI::getInstance();
+						$player = $event->getOrigin()->getPlayer();
+						if ($tradeAPI !== null && $player !== null && $tradeAPI->isTrading($player)) {
 							$action->inventorySlot = 51;
 						} else {
 							$res[] = $after;

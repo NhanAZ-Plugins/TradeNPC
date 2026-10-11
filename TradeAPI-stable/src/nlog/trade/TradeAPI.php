@@ -147,7 +147,7 @@ class TradeAPI extends PluginBase {
 
 			$properties->eid = $apk->entityRuntimeId = $pk->traderEid = Entity::nextRuntimeId();
 
-			$$player->getNetworkSession()->sendDataPacket($apk);
+			$player->getNetworkSession()->sendDataPacket($apk);
 		}
 
 		$this->process[$player->getName()] = clone $properties;

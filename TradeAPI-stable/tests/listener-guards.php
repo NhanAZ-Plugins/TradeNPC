@@ -9,9 +9,11 @@ if (!is_string($autoload) || !is_file($autoload)) {
 require $autoload;
 require __DIR__ . '/../src/nlog/trade/TradeAPI.php';
 require __DIR__ . '/../src/nlog/trade/listener/InventoryListener.php';
+require __DIR__ . '/../src/nlog/trade/listener/TransactionInjector.php';
 
 use nlog\trade\inventory\PlayerTradeInventory;
 use nlog\trade\listener\InventoryListener;
+use nlog\trade\listener\TransactionInjector;
 use nlog\trade\TradeAPI;
 use pocketmine\console\ConsoleCommandSender;
 use pocketmine\event\server\CommandEvent;
@@ -19,6 +21,10 @@ use pocketmine\event\server\DataPacketReceiveEvent;
 use pocketmine\network\mcpe\NetworkSession;
 use pocketmine\network\mcpe\protocol\ActorEventPacket;
 use pocketmine\network\mcpe\protocol\ContainerClosePacket;
+use pocketmine\network\mcpe\protocol\InventoryTransactionPacket;
+use pocketmine\network\mcpe\protocol\types\inventory\ContainerIds;
+use pocketmine\network\mcpe\protocol\types\inventory\NetworkInventoryAction;
+use pocketmine\network\mcpe\protocol\types\inventory\NormalTransactionData;
 use pocketmine\network\mcpe\protocol\types\ActorEvent;
 use pocketmine\player\Player;
 
@@ -90,4 +96,22 @@ if ($plugin->inventoryCloseCalls !== 2) {
 $base = (new ReflectionClass(TradeAPI::class))->newInstanceWithoutConstructor();
 $base->doCloseInventory(null);
 
-echo "PASS: archived trade listener guards console, unbound sessions and absent inventories\n";
+$action = new NetworkInventoryAction();
+$action->sourceType = NetworkInventoryAction::SOURCE_CONTAINER;
+$action->windowId = ContainerIds::UI;
+$action->inventorySlot = 50;
+$transaction = NormalTransactionData::new([$action]);
+$packet = InventoryTransactionPacket::create(0, [], $transaction);
+$injector = new TransactionInjector();
+$session->fixturePlayer = null;
+$injector->onDataPacketReceive(new DataPacketReceiveEvent($session, $packet));
+if ($packet->trData !== $transaction || $action->inventorySlot !== 50) {
+	throw new RuntimeException('Unattached session rewrote a trade transaction');
+}
+$session->fixturePlayer = $player;
+$injector->onDataPacketReceive(new DataPacketReceiveEvent($session, $packet));
+if ($packet->trData !== $transaction || $action->inventorySlot !== 50) {
+	throw new RuntimeException('Absent TradeAPI instance rewrote a trade transaction');
+}
+
+echo "PASS: archived trade listener guards console, unbound sessions, absent inventories and transactions\n";
