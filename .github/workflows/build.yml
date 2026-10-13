@@ -58,6 +58,10 @@ jobs:
           INPUT_INSTALL-PATH: ./.php-bin
         run: node .devtools-dependencies/setup-php-action/dist/index.js
 
+      - name: Install API-floor Axolotl-PM source dependencies
+        run: composer install --no-dev --no-interaction --prefer-dist --no-progress
+        working-directory: .devtools-dependencies/axolotl-5.0.0
+
       - name: Lint selected plugin and archived merchant PHP
         shell: bash
         run: find TradeNPC-main/src TradeNPC-main/tests TradeAPI-stable/src TradeAPI-stable/tests -name '*.php' -print0 | xargs -0 -n1 php -l
@@ -110,6 +114,13 @@ jobs:
           test "$(sha256sum "$PHAR_PATH" | cut -d ' ' -f 1)" = "$PHAR_SHA256"
           php -r '$p=new Phar(getenv("PHAR_PATH")); foreach(["plugin.yml","LICENSE","src/TradeNPC/Main.php","src/TradeNPC/TradePacketFactory.php","META-INF/virions/InvMenu/LICENSE"] as $f){if(!$p->offsetExists($f)){throw new RuntimeException("Missing PHAR entry: ".$f);}} foreach(["src/nlog/trade/TradeAPI.php","src/nlog/trade/TradePacketFactory.php","TradeAPI-stable/plugin.yml","TradeNPC-Fixed-master/plugin.yml"] as $f){if($p->offsetExists($f)){throw new RuntimeException("Unrelated source entered PHAR: ".$f);}}'
           cp "$BUILD_METADATA" build/build-metadata.json
+
+      - name: Smoke test build on Axolotl-PM 5.0.0
+        env:
+          AXOLOTL_SOURCE: .devtools-dependencies/axolotl-5.0.0
+          PLUGIN_PHAR: ${{ steps.build.outputs.phar }}
+          PLUGIN_SHA256: ${{ steps.build.outputs.sha256 }}
+        run: python3 tests/api-floor-runtime-smoke.py
 
       - name: Upload verified TradeNPC artifact
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
