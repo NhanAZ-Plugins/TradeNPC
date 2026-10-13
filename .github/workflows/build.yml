@@ -68,7 +68,7 @@ jobs:
 
       - name: Analyze both API 5 revisions and build with pinned DevTools
         id: build
-        uses: NhanAZ/DevTools@f89c929de25ea5e45418b8caeb688db77d97c2f6 # v1.0.10
+        uses: NhanAZ/DevTools@6180fb4a04e5981ccb24128823970de3e8fd3830 # v1.0.12
         with:
           project: TradeNPC-main
           virions: .devtools-dependencies/virions
@@ -80,7 +80,7 @@ jobs:
           phpstan-paths: .devtools-dependencies/virions/InvMenu/src
 
       - name: Analyze archived TradeAPI and build its test PHAR
-        uses: NhanAZ/DevTools@f89c929de25ea5e45418b8caeb688db77d97c2f6 # v1.0.10
+        uses: NhanAZ/DevTools@6180fb4a04e5981ccb24128823970de3e8fd3830 # v1.0.12
         with:
           project: TradeAPI-stable
           output: build-tradeapi
