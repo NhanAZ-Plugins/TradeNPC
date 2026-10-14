@@ -64,13 +64,13 @@ jobs:
 
       - name: Lint selected plugin and archived merchant PHP
         shell: bash
-        run: find TradeNPC-Fixed-master/src TradeNPC-Fixed-master/tests TradeAPI-stable/src TradeAPI-stable/tests -name '*.php' -print0 | xargs -0 -n1 php -l
+        run: find TradeNPC-Source/src TradeNPC-Source/tests TradeAPI-stable/src TradeAPI-stable/tests -name '*.php' -print0 | xargs -0 -n1 php -l
 
       - name: Analyze both API 5 revisions and build with pinned DevTools
         id: build
         uses: NhanAZ/DevTools@8d13a75aaf4f330fdbd93737d58be9cacc41e262 # v1.0.15
         with:
-          project: TradeNPC-Fixed-master
+          project: TradeNPC-Source
           virions: .devtools-dependencies/virions
           output: build
           phpstan: max
@@ -96,7 +96,7 @@ jobs:
           for source in .devtools-dependencies/axolotl-5.0.0 .devtools-dependencies/axolotl-5.49.1; do
             export AXOLOTL_AUTOLOAD="$GITHUB_WORKSPACE/$source/vendor/autoload.php"
             for fixture in packet-guard trade-settlement recipe-input shop-nbt; do
-              php "TradeNPC-Fixed-master/tests/$fixture.php"
+              php "TradeNPC-Source/tests/$fixture.php"
             done
             for fixture in merchant-recipes inventory-storage listener-guards packet-headers inventory-actions; do
               php "TradeAPI-stable/tests/$fixture.php"
