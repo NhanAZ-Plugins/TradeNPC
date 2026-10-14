@@ -64,13 +64,13 @@ jobs:
 
       - name: Lint selected plugin and archived merchant PHP
         shell: bash
-        run: find TradeNPC-main/src TradeNPC-main/tests TradeAPI-stable/src TradeAPI-stable/tests -name '*.php' -print0 | xargs -0 -n1 php -l
+        run: find TradeNPC-Fixed-master/src TradeNPC-Fixed-master/tests TradeAPI-stable/src TradeAPI-stable/tests -name '*.php' -print0 | xargs -0 -n1 php -l
 
       - name: Analyze both API 5 revisions and build with pinned DevTools
         id: build
         uses: NhanAZ/DevTools@8d13a75aaf4f330fdbd93737d58be9cacc41e262 # v1.0.15
         with:
-          project: TradeNPC-main
+          project: TradeNPC-Fixed-master
           virions: .devtools-dependencies/virions
           output: build
           phpstan: max
@@ -96,7 +96,7 @@ jobs:
           for source in .devtools-dependencies/axolotl-5.0.0 .devtools-dependencies/axolotl-5.49.1; do
             export AXOLOTL_AUTOLOAD="$GITHUB_WORKSPACE/$source/vendor/autoload.php"
             for fixture in packet-guard trade-settlement recipe-input shop-nbt; do
-              php "TradeNPC-main/tests/$fixture.php"
+              php "TradeNPC-Fixed-master/tests/$fixture.php"
             done
             for fixture in merchant-recipes inventory-storage listener-guards packet-headers inventory-actions; do
               php "TradeAPI-stable/tests/$fixture.php"
@@ -112,7 +112,7 @@ jobs:
         run: |
           set -euo pipefail
           test "$(sha256sum "$PHAR_PATH" | cut -d ' ' -f 1)" = "$PHAR_SHA256"
-          php -r '$p=new Phar(getenv("PHAR_PATH")); foreach(["plugin.yml","LICENSE","src/TradeNPC/Main.php","src/TradeNPC/TradePacketFactory.php","META-INF/virions/InvMenu/LICENSE"] as $f){if(!$p->offsetExists($f)){throw new RuntimeException("Missing PHAR entry: ".$f);}} foreach(["src/nlog/trade/TradeAPI.php","src/nlog/trade/TradePacketFactory.php","TradeAPI-stable/plugin.yml","TradeNPC-Fixed-master/plugin.yml"] as $f){if($p->offsetExists($f)){throw new RuntimeException("Unrelated source entered PHAR: ".$f);}}'
+          php -r '$p=new Phar(getenv("PHAR_PATH")); foreach(["plugin.yml","LICENSE","src/TradeNPC/Main.php","src/TradeNPC/TradePacketFactory.php","META-INF/virions/InvMenu/LICENSE"] as $f){if(!$p->offsetExists($f)){throw new RuntimeException("Missing PHAR entry: ".$f);}} foreach(["src/nlog/trade/TradeAPI.php","src/nlog/trade/TradePacketFactory.php","TradeAPI-stable/plugin.yml","TradeNPC-Fixed-master-api4-legacy/plugin.yml"] as $f){if($p->offsetExists($f)){throw new RuntimeException("Unrelated source entered PHAR: ".$f);}}'
           cp "$BUILD_METADATA" build/build-metadata.json
 
       - name: Smoke test build on Axolotl-PM 5.0.0
