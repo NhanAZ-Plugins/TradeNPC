@@ -5,8 +5,10 @@ This repository contains several historical source trees. The root is not a Pock
 | Directory | Manifest API | Attribution and license in that directory |
 |---|---|---|
 | [`TradeNPC-Source/`](TradeNPC-Source/) | `5.0.0` | alvin0319 and DavidGlitch04, GPL-3.0 text retained from the maintained API 5 implementation |
-| [`TradeNPC-Fixed-master-api4-legacy/`](TradeNPC-Fixed-master-api4-legacy/) | `4.0.0` | alvin0319 and DavidGlitch04; historical source has no local license file and is not built |
-| [`TradeAPI-stable/`](TradeAPI-stable/) | `5.0.0` | nlog, AGPL-3.0 text |
+| [API 4 legacy snapshot](https://github.com/NhanAZ-Plugins/TradeNPC/tree/main/TradeNPC-Fixed-master-api4-legacy) | `4.0.0` | alvin0319 and DavidGlitch04; historical source has no local license file and is not built |
+| [TradeAPI snapshot](https://github.com/NhanAZ-Plugins/TradeNPC/tree/main/TradeAPI-stable) | `5.0.0` | nlog, AGPL-3.0 text |
+
+GitHub source archives for releases exclude the historical API 4 snapshot and separate TradeAPI tree. They remain available in this repository under their own attribution and license scope.
 
 The active [`TradeNPC-Source/`](TradeNPC-Source/) source uses [InvMenu](https://github.com/Muqsit/InvMenu), pinned to compatible source in the [build workflow](.github/workflows/build.yml). Its `plugin.yml` declares API 5.0.0. CI checks PHPStan at maximum level against pinned Axolotl-PM 5.0.0 and 5.49.1 source revisions and builds a PHAR with [DevTools](https://github.com/NhanAZ/DevTools). These checks establish compatibility with the tested revisions, not every Axolotl-PM 5.x release. The PHAR gate checks that neither the separate TradeAPI source nor the API 4 legacy snapshot enters the selected plugin artifact. TradeAPI is a historical third-party snapshot in this collection and has no import from the active source.
 
