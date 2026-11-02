@@ -4,7 +4,7 @@ TradeNPC is an Axolotl-PM plugin for creating named trading NPCs with `/npc crea
 
 ## Compatibility
 
-The plugin manifest declares API `5.0.0`. CI runs PHPStan at maximum level and builds the PHAR against pinned Axolotl-PM 5.0.0 and 5.49.1 source revisions. The PHAR was started on the 5.49.1 release server, and a headless client completed one trade there. These tested revisions do not establish compatibility with every 5.x release or verify the in-game Bedrock trading screen.
+The plugin manifest declares API `5.0.0`. CI runs PHPStan at maximum level and builds the PHAR against pinned Axolotl-PM 5.0.0 and 5.51.1 source revisions. The PHAR was started on the 5.51.1 release server, and a headless client completed one trade there. These tested revisions do not establish compatibility with every 5.x release or verify the in-game Bedrock trading screen.
 
 ## Trade safety
 
