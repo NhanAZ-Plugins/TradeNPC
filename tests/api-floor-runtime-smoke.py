@@ -53,6 +53,8 @@ with tempfile.TemporaryDirectory(prefix="tradenpc-api-floor-") as temporary:
         process = subprocess.Popen(
             [
                 "php",
+                "-d",
+                "error_reporting=24575",
                 str(source / "src" / "PocketMine.php"),
                 "--no-wizard",
                 "--disable-ansi",
