@@ -14,6 +14,7 @@ source = Path(os.environ["AXOLOTL_SOURCE"]).resolve()
 plugin = Path(os.environ["PLUGIN_PHAR"]).resolve()
 expected_plugin_sha256 = os.environ["PLUGIN_SHA256"]
 expected_server_commit = "b16cc69974d4e805d21e6328ab77c0e17cd7116d"
+php_binary = os.environ.get("PHP_BIN", "php")
 
 if not (source / "src" / "PocketMine.php").is_file() or not (source / "vendor" / "autoload.php").is_file():
     raise RuntimeError("Pinned Axolotl-PM API-floor source and Composer dependencies are required")
@@ -52,9 +53,7 @@ with tempfile.TemporaryDirectory(prefix="tradenpc-api-floor-") as temporary:
     with log.open("w", encoding="utf-8") as output:
         process = subprocess.Popen(
             [
-                "php",
-                "-d",
-                "error_reporting=24575",
+                php_binary,
                 str(source / "src" / "PocketMine.php"),
                 "--no-wizard",
                 "--disable-ansi",

@@ -127,10 +127,18 @@ jobs:
           cp "$BUILD_METADATA" build/build-metadata.json
 
       - name: Smoke test build on Axolotl-PM 5.0.0
+        uses: ./.devtools-dependencies/setup-php-action
+        with:
+          php-version: "8.3"
+          pm-version-major: "5"
+          install-path: ./.php83-bin
+
+      - name: Run Axolotl-PM 5.0.0 startup smoke test on PHP 8.3
         env:
           AXOLOTL_SOURCE: .devtools-dependencies/axolotl-5.0.0
           PLUGIN_PHAR: ${{ steps.build.outputs.phar }}
           PLUGIN_SHA256: ${{ steps.build.outputs.sha256 }}
+          PHP_BIN: php
         run: python3 tests/api-floor-runtime-smoke.py
 
       - name: Upload verified TradeNPC artifact
