@@ -170,4 +170,4 @@ if ($otherPacket->trData === $otherTransaction || $actions[2]->inventorySlot !==
 }
 TradeAPI::removeInventory($player);
 
-echo "PASS: archived trade listener guards console, unbound sessions and active trade routing\n";
+echo "PASS: integrated trade listener guards console, unbound sessions and active trade routing\n";

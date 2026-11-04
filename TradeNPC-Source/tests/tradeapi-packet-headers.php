@@ -29,4 +29,4 @@ if ($remove->actorUniqueId !== $actorId) {
 	throw new RuntimeException('Fake trader removal does not use the actor unique ID');
 }
 
-echo "PASS: archived trader actor packet fields\n";
+echo "PASS: integrated trader actor packet fields\n";

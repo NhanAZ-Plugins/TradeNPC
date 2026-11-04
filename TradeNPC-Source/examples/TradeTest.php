@@ -22,9 +22,9 @@
  * @name TradeTest
  * @main       nlog\TradeTest
  * @author     nlog
- * @api        3.0.0
+ * @api        5.0.0
  * @version    1.0.0
- * @softDepend TradeAPI
+ * @softDepend TradeNPC
  */
 
 namespace nlog;

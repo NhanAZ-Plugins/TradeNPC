@@ -114,4 +114,4 @@ try {
 }
 
 TradeAPI::removeInventory($player);
-echo "PASS: archived trade action item conversion, slots and validation guards\n";
+echo "PASS: integrated trade action item conversion, slots and validation guards\n";

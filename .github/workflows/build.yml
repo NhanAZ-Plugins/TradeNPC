@@ -15,7 +15,7 @@ jobs:
     name: Analyze API 5 source and build plugin PHAR
     runs-on: ubuntu-24.04
     steps:
-      - name: Check out TradeNPC source collection
+      - name: Check out unified TradeNPC source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Verify release source archive excludes unrelated license scopes
@@ -26,8 +26,9 @@ jobs:
           git archive --format=tar HEAD | tar -xf - -C "$archive_dir"
           test -f "$archive_dir/TradeNPC-Source/LICENSE"
           test -f "$archive_dir/TradeNPC-Source/plugin.yml"
-          legacy_files="$(find "$archive_dir/TradeAPI-stable" "$archive_dir/TradeNPC-Fixed-master-api4-legacy" -type f -print 2>/dev/null || true)"
-          test -z "$legacy_files"
+          test ! -e "$archive_dir/TradeAPI-stable"
+          test ! -e "$archive_dir/TradeNPC-Fixed-master-api4-legacy"
+          test -f "$archive_dir/TradeNPC-Source/src/nlog/trade/TradeAPI.php"
 
       - name: Check out Axolotl-PM 5.0.0 source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -73,11 +74,11 @@ jobs:
         run: composer install --no-dev --no-interaction --prefer-dist --no-progress
         working-directory: .devtools-dependencies/axolotl-5.0.0
 
-      - name: Lint selected plugin and archived merchant PHP
+      - name: Lint unified plugin and test PHP
         shell: bash
-        run: find TradeNPC-Source/src TradeNPC-Source/tests TradeAPI-stable/src TradeAPI-stable/tests -name '*.php' -print0 | xargs -0 -n1 php -l
+        run: find TradeNPC-Source/src TradeNPC-Source/tests TradeNPC-Source/examples -name '*.php' -print0 | xargs -0 -n1 php -l
 
-      - name: Analyze both API 5 revisions and build with pinned DevTools
+      - name: Analyze both API 5 revisions and build the unified PHAR
         id: build
         uses: NhanAZ/DevTools@v2 # v2
         with:
@@ -90,16 +91,6 @@ jobs:
             .devtools-dependencies/axolotl-5.51.1
           phpstan-paths: .devtools-dependencies/virions/InvMenu/src
 
-      - name: Analyze archived TradeAPI and build its test PHAR
-        uses: NhanAZ/DevTools@v2 # v2
-        with:
-          project: TradeAPI-stable
-          output: build-tradeapi
-          phpstan: max
-          phpstan-server: |
-            .devtools-dependencies/axolotl-5.0.0
-            .devtools-dependencies/axolotl-5.51.1
-
       - name: Run trade packet, settlement and inventory fixtures
         shell: bash
         run: |
@@ -109,8 +100,8 @@ jobs:
             for fixture in packet-guard trade-settlement recipe-input shop-nbt; do
               php "TradeNPC-Source/tests/$fixture.php"
             done
-            for fixture in merchant-recipes inventory-storage listener-guards packet-headers inventory-actions; do
-              php "TradeAPI-stable/tests/$fixture.php"
+            for fixture in tradeapi-merchant-recipes tradeapi-inventory-storage tradeapi-listener-guards tradeapi-packet-headers tradeapi-inventory-actions; do
+              php "TradeNPC-Source/tests/$fixture.php"
             done
           done
 
@@ -123,7 +114,7 @@ jobs:
         run: |
           set -euo pipefail
           test "$(sha256sum "$PHAR_PATH" | cut -d ' ' -f 1)" = "$PHAR_SHA256"
-          php -r '$p=new Phar(getenv("PHAR_PATH")); foreach(["plugin.yml","LICENSE","src/TradeNPC/Main.php","src/TradeNPC/TradePacketFactory.php","META-INF/virions/InvMenu/LICENSE"] as $f){if(!$p->offsetExists($f)){throw new RuntimeException("Missing PHAR entry: ".$f);}} foreach(["src/nlog/trade/TradeAPI.php","src/nlog/trade/TradePacketFactory.php","TradeAPI-stable/plugin.yml","TradeNPC-Fixed-master-api4-legacy/plugin.yml"] as $f){if($p->offsetExists($f)){throw new RuntimeException("Unrelated source entered PHAR: ".$f);}}'
+          php -r '$p=new Phar(getenv("PHAR_PATH")); foreach(["plugin.yml","LICENSE","src/TradeNPC/Main.php","src/TradeNPC/TradePacketFactory.php","src/nlog/trade/TradeAPI.php","src/nlog/trade/merchant/MerchantRecipe.php","META-INF/virions/InvMenu/LICENSE"] as $f){if(!$p->offsetExists($f)){throw new RuntimeException("Missing PHAR entry: ".$f);}} foreach(["TradeAPI-stable/plugin.yml","TradeNPC-Fixed-master-api4-legacy/plugin.yml"] as $f){if($p->offsetExists($f)){throw new RuntimeException("Legacy source entered PHAR: ".$f);}}'
           cp "$BUILD_METADATA" build/build-metadata.json
 
       - name: Smoke test build on Axolotl-PM 5.0.0

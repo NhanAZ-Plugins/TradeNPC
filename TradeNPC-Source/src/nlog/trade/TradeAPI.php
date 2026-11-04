@@ -37,7 +37,14 @@ use pocketmine\player\Player;
 use pocketmine\plugin\PluginBase;
 use pocketmine\scheduler\ClosureTask;
 
-class TradeAPI extends PluginBase {
+class TradeAPI {
+
+	private PluginBase $plugin;
+
+	public function __construct(PluginBase $plugin) {
+		$this->plugin = $plugin;
+		$this->onLoad();
+	}
 
 	/** @var array<string, PlayerTradeInventory> */
 	private static $inventory = [];
@@ -74,13 +81,13 @@ class TradeAPI extends PluginBase {
 	}
 
 	public function onEnable(): void {
-		$this->getServer()->getPluginManager()->registerEvents(new InventoryListener($this), $this);
-		$this->getServer()->getPluginManager()->registerEvents(new TransactionInjector(), $this);
+		$this->plugin->getServer()->getPluginManager()->registerEvents(new InventoryListener($this), $this->plugin);
+		$this->plugin->getServer()->getPluginManager()->registerEvents(new TransactionInjector(), $this->plugin);
 	}
 
 	public function onDisable(): void {
 		foreach (self::$inventory as $name => $inventory) {
-			if ($this->getServer()->getPlayerExact($name) instanceof Player) {
+			if ($this->plugin->getServer()->getPlayerExact($name) instanceof Player) {
 				$this->doCloseInventory($inventory);
 			}
 		}
@@ -170,7 +177,7 @@ class TradeAPI extends PluginBase {
 				$this->closeWindow($player);
 				return;
 			}
-			$this->getScheduler()->scheduleDelayedTask(new ClosureTask(function() use ($player, $inventory, $properties, $offers, $attempt) : void{
+			$this->plugin->getScheduler()->scheduleDelayedTask(new ClosureTask(function() use ($player, $inventory, $properties, $offers, $attempt) : void{
 				$this->sendTradeUpdate($player, $inventory, $properties, $offers, $attempt + 1);
 			}), 1);
 			return;

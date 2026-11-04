@@ -29,6 +29,7 @@ use pocketmine\world\World;
 use TradeNPC\entity\TradeNPC;
 use TradeNPC\inventory\TradeInventory;
 use TradeNPC\listener\EventListener;
+use nlog\trade\TradeAPI;
 
 class Main extends PluginBase implements Listener
 {
@@ -51,6 +52,8 @@ class Main extends PluginBase implements Listener
 
     /** @var bool */
     public $turn = false;
+
+    private ?TradeAPI $tradeApi = null;
 
     /** @return TradeNPC|null */
     public function getEntityName(string $chat)
@@ -237,5 +240,17 @@ class Main extends PluginBase implements Listener
         }, ['TradeNPC', 'Trade']);
         $this->getServer()->getPluginManager()->registerEvents(new EventListener($this), $this);
         $this->menu = InvMenu::create(InvMenu::TYPE_CHEST);
+        $this->tradeApi = new TradeAPI($this);
+        $this->tradeApi->onEnable();
+    }
+
+    protected function onDisable(): void
+    {
+        $this->tradeApi?->onDisable();
+    }
+
+    public function getTradeAPI(): ?TradeAPI
+    {
+        return $this->tradeApi;
     }
 }
