@@ -24,11 +24,11 @@ jobs:
           set -euo pipefail
           archive_dir="$(mktemp -d)"
           git archive --format=tar HEAD | tar -xf - -C "$archive_dir"
-          test -f "$archive_dir/TradeNPC-Source/LICENSE"
-          test -f "$archive_dir/TradeNPC-Source/plugin.yml"
+          test -f "$archive_dir/LICENSE"
+          test -f "$archive_dir/plugin.yml"
           test ! -e "$archive_dir/TradeAPI-stable"
           test ! -e "$archive_dir/TradeNPC-Fixed-master-api4-legacy"
-          test -f "$archive_dir/TradeNPC-Source/src/nlog/trade/TradeAPI.php"
+          test -f "$archive_dir/src/nlog/trade/TradeAPI.php"
 
       - name: Check out Axolotl-PM 5.0.0 source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -76,13 +76,13 @@ jobs:
 
       - name: Lint unified plugin and test PHP
         shell: bash
-        run: find TradeNPC-Source/src TradeNPC-Source/tests TradeNPC-Source/examples -name '*.php' -print0 | xargs -0 -n1 php -l
+        run: find src tests examples -name '*.php' -print0 | xargs -0 -n1 php -l
 
       - name: Analyze both API 5 revisions and build the unified PHAR
         id: build
         uses: NhanAZ/DevTools@v2 # v2
         with:
-          project: TradeNPC-Source
+          project: .
           virions: .devtools-dependencies/virions
           output: build
           phpstan: max
@@ -98,10 +98,10 @@ jobs:
           for source in .devtools-dependencies/axolotl-5.0.0 .devtools-dependencies/axolotl-5.51.1; do
             export AXOLOTL_AUTOLOAD="$GITHUB_WORKSPACE/$source/vendor/autoload.php"
             for fixture in packet-guard trade-settlement recipe-input shop-nbt; do
-              php "TradeNPC-Source/tests/$fixture.php"
+              php "tests/$fixture.php"
             done
             for fixture in tradeapi-merchant-recipes tradeapi-inventory-storage tradeapi-listener-guards tradeapi-packet-headers tradeapi-inventory-actions; do
-              php "TradeNPC-Source/tests/$fixture.php"
+              php "tests/$fixture.php"
             done
           done
 
