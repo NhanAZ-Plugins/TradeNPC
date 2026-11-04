@@ -1,4 +1,14 @@
-# TradeNPC source collection
+# TradeNPC
+
+Collection of three TradeNPC and TradeAPI source snapshots
+
+[![CI](https://github.com/NhanAZ-Plugins/TradeNPC/actions/workflows/build.yml/badge.svg)](https://github.com/NhanAZ-Plugins/TradeNPC/actions/workflows/build.yml)
+[![Latest release](https://img.shields.io/github/v/release/NhanAZ-Plugins/TradeNPC)](https://github.com/NhanAZ-Plugins/TradeNPC/releases/latest)
+[![Discord](https://img.shields.io/discord/986553214889517088?label=Discord&logo=discord&logoColor=white&color=5865F2)](https://discord.gg/j2X83ujT6c)
+
+## Overview
+
+This is an experimental repository. Review its documented limitations before using it on a live server.
 
 This repository contains several historical source trees. The root is not a PocketMine-MP plugin. `TradeNPC-Source/` is now the active API 5 source and the only TradeNPC source built by CI.
 
@@ -17,5 +27,3 @@ The archived TradeAPI source passes local PHPStan at maximum level against both 
 The TradeNPC packet listener ignores pre-login trade packets, invalid recipe indices and incomplete recipes. It checks the combined trade cost and reward capacity in a temporary inventory before changing the player's inventory, leaves normal inventory actions to server validation, and accepts only complete recipe input rows. Trade windows open through the server's per-player inventory API. The [packet guard](TradeNPC-Source/tests/packet-guard.php), [trade settlement](TradeNPC-Source/tests/trade-settlement.php), [recipe input](TradeNPC-Source/tests/recipe-input.php) and [shop NBT](TradeNPC-Source/tests/shop-nbt.php) fixtures use `AXOLOTL_AUTOLOAD` to select a pinned server Composer autoload file. The NBT fixture checks that two players can open the same NPC inventory.
 
 A connected headless client created one NPC and sent an interaction packet to the selected plugin PHAR on the Axolotl-PM 5.51.1 release server. Before the window fix, the client received a container window with ID 2 and a trade update with ID 1. After the fix, the exact verified CI PHAR sent both packets with window ID 2 and the `trading` window type. A second connected test used a disposable NPC offer of one diamond and one stick for one gold ingot. The client sent a complete trade event, and the server saved the player inventory with the gold ingot after the diamond and stick were consumed. Both processes exited without errors. These tests cover one offer on the tested server revision. They do not verify the Bedrock game UI, other recipes or every Axolotl-PM 5.x release. The separate TradeAPI and API 4 snapshots still require their own analysis and build decisions. No release of this source collection is verified; its root source archive includes code under separate license terms.
-
-For questions about the NhanAZ ecosystem, use [NhanAZ Discord](https://discord.gg/j2X83ujT6c).
