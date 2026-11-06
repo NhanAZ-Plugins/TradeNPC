@@ -80,7 +80,7 @@ jobs:
 
       - name: Analyze both API 5 revisions and build the unified PHAR
         id: build
-        uses: NhanAZ/DevTools@v2 # v2
+        uses: AxolotlBucketLabs/DevTools@v3 # v3.0.0
         with:
           project: .
           virions: .devtools-dependencies/virions

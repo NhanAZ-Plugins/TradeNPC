@@ -39,7 +39,7 @@ settlement, persisted NPC offers, and the integrated TradeAPI inventory path.
 
 ## Build
 
-The repository workflow uses [DevTools](https://github.com/NhanAZ/DevTools) and
+The repository workflow uses [DevTools](https://github.com/AxolotlBucketLabs/DevTools) and
 a pinned [InvMenu](https://github.com/Muqsit/InvMenu) source revision to analyze
 the source, build the single plugin PHAR, and verify its contents and checksum.
 Review the [build workflow](.github/workflows/build.yml) for the exact tested
